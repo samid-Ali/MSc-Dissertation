@@ -1,17 +1,17 @@
 ---
-title: "Dissertation "
+title: "The Macroeconomic Effects of Fiscal Adjusments in The UK "
 author: "Samid Ali"
 output:
   pdf_document:
     latex_engine: xelatex
     toc: true
     toc_depth: 2
-    
+    number_sections: true
+documentclass: report
+   
 ---
 
 ```{r setup, include=FALSE}
-
-
 
 library(ggplot2)
 library(knitr)
@@ -24,36 +24,34 @@ library(stargazer)
 library(clipr)
 library(tibble)
 library(lubridate)
-# library(kableExtra) 
+#library(kableExtra) 
 
-# knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 
 
 ```
 
 
+
 \newpage
 
 
-# 1  
+# Introduction
 
-VAR
+# Literature Review
 
-We estimate the following model by OLS:     
-$$
-\begin{aligned}
-loggdp_{i} = \beta_0 + \beta_1 Risk + X'\alpha + u_i
-\end{aligned}
-$$
-Where:   
-$Risk$ is the measure of protection against expropriation,  
-$X$ is a vector of controls (in the simple linear regression model this is assumed to be the 0 vector, while in the multiple linear regression model we include edesc1975)  
-$u_i$ is the unobserved error term,
+# Data 
 
-<!-- sessionInfo() -->
+Discuss Empirical model, lag structure, data sources, potentially features of the data
+
+# Identification
+How we recover the structural shocks to conduct meaningful analysis. Recall The reduced form residuals are correlated and lack an economic interpretation. 
+Identification measure requires economic justification. Use short run restrictions with a recursive structure for this. Following Fernandez (2006)
 
 
-```{r 1, echo=FALSE}
+
+
+```{r 1}
 
 df <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/GDP.csv", skip = 1)
 
@@ -83,7 +81,7 @@ str(filtered_df)
 ```
 
 
-```{r dataProc, echo=FALSE}
+```{r dataProc }
 
 fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data.csv", skip = 1)
 
@@ -157,7 +155,7 @@ model_data <- data %>%
 
 ```
 
-```{r , echo=FALSE}
+```{r}
 
 # ggplot(fiscal_proc, aes(x = Year2)) +
 #   geom_line(aes(y = Revenue, color = "Revenue"), size = 1) +
@@ -220,3 +218,7 @@ Thus, the structural shocks \( u_t \) can be recovered as:
 
 \[ u_t = B^{-1} \epsilon_t \]
 
+
+# Technical Appendix 
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
