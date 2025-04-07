@@ -47,7 +47,35 @@ Sutherland, Hoeller, and Merola (@sutherland2012) draw attention to the fiscal c
 While the importance of fiscal consolidation has been highlighted, it is crucial that these measures are not at the expense of the broader economy. By investigating forecast errors for a sample of European countries, Blanchard and Leigh (@blanchard2013) find that larger anticipated fiscal consolidation was associated with lower growth. This result was interpreted as due to the fiscal multiplier being greater than anticipated by forecasters. Consequently, fiscal tightening would have further dampened demand, and thus improvements in fiscal consolidation would be offset by reduced growth. Fatas and Summers (2018) extend this research, investigating the long-term effects that fiscal adjustments have had on GDP. Their analysis suggests that fiscal consolidations have failed to lower the debt-to-GDP ratio due to a hysteresis effect of contractionary fiscal policy. This research underscores the need for effectively quantifying fiscal multipliers to understand potential trade-offs between various economic objectives. Ilzetzki, Mendoza, and Vegh (@ilzetzki2013) provide further insight into the fiscal multiplier, suggesting that the heterogeneity in the estimates reported in the literature can be attributed to differences in structural characteristics of the economy considered. This reinforces the importance of research to better understand the fiscal multiplier for different policy instruments, particularly as this may vary across countries.
 
 To achieve this objective, this research will use a Structural Vector Autoregressive (VAR) model to estimate the fiscal multiplier. As a baseline, a three-dimensional VAR is proposed: featuring government revenue, government expenditure, and output. It should be noted that there are several definitions for the fiscal variables used in the literature. Blanchard and Perotti (2002) note that the choice of fiscal variables reflects “theoretical priors.” Therefore, the definitions of the fiscal variables used will need to be clearly articulated, determined based on data availability and explicit economic assumptions. Regarding identification for the structural VAR, Mountford and Uhlig (@mountford2009) provide convincing economic rationale for sign restrictions on the impulse responses. This strategy imposes fewer restrictions on the model and is thus more robust to misspecification. However, this approach also has drawbacks, as it means that the parameters will only be set identified. Thus, further work may be required to pin down the structural impulse responses (@kilian2017).
+
+# Econometric Methodology
+
+This section outlines the VAR methodology that will be employed by this research. We define the  5-dimensional vector of endogenous variables as: 
+
+
+
+\[
+X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ \tau_t \\ P_t \end{pmatrix}
+\]
+
+The reduced-form VAR model can be written as:
+
+\[
+X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
+\]
+
+where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length.
+
+
 # Data 
+
+
+We use quarterly data for the UK economy covering the period 1987 – 2023. The empirical model is a 5-dimensional VAR model consisting of government expenditure  ($g_t$), net government taxes ($nt_t$), GDP ($G_t$), the GDP deflator inflation rate ($\pi_t$), and the mean of the 3 month treasury rate ($\tau_t$). Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the treasury rate which enters the model in levels. 
+
+The fiscal variables used follow the European System of Accounts (ESA, 2010). This closely follows the literature. In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002)
+
+NB need to confirm regarding local, central, and general government
+
 
 Discuss Empirical model, lag structure, data sources, potentially features of the data
 
