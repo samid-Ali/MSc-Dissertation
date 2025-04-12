@@ -10,9 +10,10 @@ output:
     citation_package: biblatex
 bibliography: references.bib
 csl: harvard-kings-college-london.csl
-    
-documentclass: report
-   
+documentclass: article
+header-includes:
+  - \usepackage{biblatex}
+  - \addbibresource{references.bib}
 ---
 
 ```{r setup, include=FALSE}
@@ -50,16 +51,17 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 \newpage
 
+# Abstract
 
 # Introduction
 
 # Literature Review
 
-Sutherland, Hoeller, and Merola (@sutherland2012) draw attention to the fiscal challenges facing countries following the Global Financial Crisis, noting that gross government debt has exceeded 100% of GDP for the OECD as an aggregate. Warmedinger, Checherita-Westphal, and de Cos (@warmedinger2015) emphasise the importance of public debt sustainability for ensuring macroeconomic stability. There are several mechanisms through which excessive debt could harm the economy. For instance, concerns regarding public finances could reduce business confidence, leading to decreased investment and thus a slowdown in growth. Therefore, fiscal consolidation is clearly needed to ensure the long-term resilience of the economy. As a target, Sutherland, Hoeller, and Merola (@sutherland2012) propose that countries should aim to bring debt levels towards 50% of GDP: a figure which would require the UK to halve its current debt levels. The IMF (2023) argues that to stabilise GDP, fiscal adjustments should be in the region of up to 4% of GDP. Thus, achieving this objective would require significant fiscal adjustments, motivating further research to support the transition towards more sustainable public finances.
+@sutherland2012 draw attention to the fiscal challenges facing countries following the Global Financial Crisis, noting that gross government debt has exceeded 100% of GDP for the OECD as an aggregate.@warmedinger2015 emphasise the importance of public debt sustainability for ensuring macroeconomic stability. There are several mechanisms through which excessive debt could harm the economy. For instance, concerns regarding public finances could reduce business confidence, leading to decreased investment and thus a slowdown in growth. Therefore, fiscal consolidation is clearly needed to ensure the long-term resilience of the economy. As a target, @sutherland2012 propose that countries should aim to bring debt levels towards 50% of GDP: a figure which would require the UK to halve its current debt levels. The IMF (2023) argues that to stabilise GDP, fiscal adjustments should be in the region of up to 4% of GDP. Thus, achieving this objective would require significant fiscal adjustments, motivating further research to support the transition towards more sustainable public finances.
 
-While the importance of fiscal consolidation has been highlighted, it is crucial that these measures are not at the expense of the broader economy. By investigating forecast errors for a sample of European countries, Blanchard and Leigh (@blanchard2013) find that larger anticipated fiscal consolidation was associated with lower growth. This result was interpreted as due to the fiscal multiplier being greater than anticipated by forecasters. Consequently, fiscal tightening would have further dampened demand, and thus improvements in fiscal consolidation would be offset by reduced growth. Fatas and Summers (2018) extend this research, investigating the long-term effects that fiscal adjustments have had on GDP. Their analysis suggests that fiscal consolidations have failed to lower the debt-to-GDP ratio due to a hysteresis effect of contractionary fiscal policy. This research underscores the need for effectively quantifying fiscal multipliers to understand potential trade-offs between various economic objectives. Ilzetzki, Mendoza, and Vegh (@ilzetzki2013) provide further insight into the fiscal multiplier, suggesting that the heterogeneity in the estimates reported in the literature can be attributed to differences in structural characteristics of the economy considered. This reinforces the importance of research to better understand the fiscal multiplier for different policy instruments, particularly as this may vary across countries.
+While the importance of fiscal consolidation has been highlighted, it is crucial that these measures are not at the expense of the broader economy. By investigating forecast errors for a sample of European countries, @blanchard2013 find that larger anticipated fiscal consolidation was associated with lower growth. This result was interpreted as due to the fiscal multiplier being greater than anticipated by forecasters. Consequently, fiscal tightening would have further dampened demand, and thus improvements in fiscal consolidation would be offset by reduced growth. Fatas and Summers (2018) extend this research, investigating the long-term effects that fiscal adjustments have had on GDP. Their analysis suggests that fiscal consolidations have failed to lower the debt-to-GDP ratio due to a hysteresis effect of contractionary fiscal policy. This research underscores the need for effectively quantifying fiscal multipliers to understand potential trade-offs between various economic objectives. @ilzetzki2013 provide further insight into the fiscal multiplier, suggesting that the heterogeneity in the estimates reported in the literature can be attributed to differences in structural characteristics of the economy considered. This reinforces the importance of research to better understand the fiscal multiplier for different policy instruments, particularly as this may vary across countries.
 
-To achieve this objective, this research will use a Structural Vector Autoregressive (VAR) model to estimate the fiscal multiplier. As a baseline, a three-dimensional VAR is proposed: featuring government revenue, government expenditure, and output. It should be noted that there are several definitions for the fiscal variables used in the literature. Blanchard and Perotti (2002) note that the choice of fiscal variables reflects “theoretical priors.” Therefore, the definitions of the fiscal variables used will need to be clearly articulated, determined based on data availability and explicit economic assumptions. Regarding identification for the structural VAR, Mountford and Uhlig (@mountford2009) provide convincing economic rationale for sign restrictions on the impulse responses. This strategy imposes fewer restrictions on the model and is thus more robust to misspecification. However, this approach also has drawbacks, as it means that the parameters will only be set identified. Thus, further work may be required to pin down the structural impulse responses (@kilian2017).
+To achieve this objective, this research will use a Structural Vector Autoregressive (VAR) model to estimate the fiscal multiplier. As a baseline, a three-dimensional VAR is proposed: featuring government revenue, government expenditure, and output. It should be noted that there are several definitions for the fiscal variables used in the literature. Blanchard and Perotti (2002) note that the choice of fiscal variables reflects “theoretical priors.” Therefore, the definitions of the fiscal variables used will need to be clearly articulated, determined based on data availability and explicit economic assumptions. Regarding identification for the structural VAR, @mountford2009 provide convincing economic rationale for sign restrictions on the impulse responses. This strategy imposes fewer restrictions on the model and is thus more robust to misspecification. However, this approach also has drawbacks, as it means that the parameters will only be set identified. Thus, further work may be required to pin down the structural impulse responses (@kilian2017).
 
 # Econometric Methodology
 
@@ -318,21 +320,9 @@ motivated by economic rationale. Following Fernandez (2006), I outline the assum
 
 # Discussion/ Policy Implications
 
-# References 
+# Bibliography
 
-Blanchard, O.J. and Leigh, D., 2013. Growth forecast errors and fiscal multipliers. American Economic Review, 103(3), pp.117-120.
-
-
-Caldara, D. and Kamps, C., 2008. What are the effects of fiscal policy shocks? A VAR-based comparative analysis.
-
-Caldara, D. and Kamps, C., 2017. The analytics of SVARs: a unified framework to measure fiscal multipliers. The Review of Economic Studies, 84(3), pp.1015-1040.
-
-Ilzetzki, E., Mendoza, E.G. and Végh, C.A., 2013. How big (small?) are fiscal multipliers?. Journal of monetary economics, 60(2), pp.239-254.
-Kilian, L. and Lütkepohl, H., 2017. Structural vector autoregressive analysis. Cambridge University Press.
-Mountford, A. and Uhlig, H., 2009. What are the effects of fiscal policy shocks?. Journal of applied econometrics, 24(6), pp.960-992.
-Sutherland, D., Hoeller, P. and Merola, R., 2012. Fiscal consolidation: How much, how fast and by what means?.
-Warmedinger, T., Checherita-Westphal, C.D. and De Cos, P.H., 2015. Fiscal multipliers and beyond. ECB Occasional Paper, 162.
-
+\printbibliography
 
 
 # Technical Appendix 
