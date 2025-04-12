@@ -17,6 +17,12 @@ documentclass: report
 
 ```{r setup, include=FALSE}
 
+
+# library(knitr)
+# library(stargazer)
+# library(clipr)
+#library(kableExtra) 
+
 library(ggplot2)
 library(knitr)
 library(ivreg)
@@ -28,9 +34,14 @@ library(stargazer)
 library(clipr)
 library(tibble)
 library(lubridate)
-#library(kableExtra) 
 
-knitr::opts_chunk$set(echo = FALSE)
+
+lapply(c("ggplot2", "dplyr", "data.table", "lubridate", "janitor", "broom", "tibble", "tidyr", "aTSA", "vars"),
+       require, character.only = TRUE)
+
+# knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
 
 
 ```
@@ -41,6 +52,8 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 # Introduction
+
+# Literature Review
 
 Sutherland, Hoeller, and Merola (@sutherland2012) draw attention to the fiscal challenges facing countries following the Global Financial Crisis, noting that gross government debt has exceeded 100% of GDP for the OECD as an aggregate. Warmedinger, Checherita-Westphal, and de Cos (@warmedinger2015) emphasise the importance of public debt sustainability for ensuring macroeconomic stability. There are several mechanisms through which excessive debt could harm the economy. For instance, concerns regarding public finances could reduce business confidence, leading to decreased investment and thus a slowdown in growth. Therefore, fiscal consolidation is clearly needed to ensure the long-term resilience of the economy. As a target, Sutherland, Hoeller, and Merola (@sutherland2012) propose that countries should aim to bring debt levels towards 50% of GDP: a figure which would require the UK to halve its current debt levels. The IMF (2023) argues that to stabilise GDP, fiscal adjustments should be in the region of up to 4% of GDP. Thus, achieving this objective would require significant fiscal adjustments, motivating further research to support the transition towards more sustainable public finances.
 
@@ -64,24 +77,22 @@ The reduced-form VAR model can be written as:
 X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
 \]
 
-where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length.
+where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length. In line with XXX we assume the model contains 4 lags. Given the use of quarterly data, this can be interpreted as lags of the model variables having a direct affect for up to a year. THis use of lag is supported by the Akaike Information Criteria. 
+
 
 
 # Data 
 
 
-We use quarterly data for the UK economy covering the period 1987 – 2023. The empirical model is a 5-dimensional VAR model consisting of government expenditure  ($g_t$), net government taxes ($nt_t$), GDP ($G_t$), the GDP deflator inflation rate ($\pi_t$), and the mean of the 3 month treasury rate ($\tau_t$). Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the treasury rate which enters the model in levels. 
+We use quarterly data for the UK economy covering the period 1987 – 2023. The empirical model is a 5-dimensional VAR model consisting of government expenditure  ($g_t$), net government taxes ($nt_t$), GDP ($G_t$), the GDP deflator inflation rate ($\pi_t$), and the mean of the 3 month treasury rate ($\tau_t$). Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the treasury rate which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. 
 
 The fiscal variables used follow the European System of Accounts (ESA, 2010). This closely follows the literature. In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002)
 
-NB need to confirm regarding local, central, and general government
+*NB need to confirm regarding local, central, and general government*
 
 
 Discuss Empirical model, lag structure, data sources, potentially features of the data
 
-# Identification
-How we recover the structural shocks to conduct meaningful analysis. Recall The reduced form residuals are correlated and lack an economic interpretation. 
-Identification measure requires economic justification. Use short run restrictions with a recursive structure for this. Following Fernandez (2006)
 
 
 
@@ -92,26 +103,29 @@ df <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/GD
 
 
 # Filter the data frame to exclude rows where the column 'title' matches any of the specified values
-filtered_df <- df %>% 
-  # Only keep the quarterly data
-  subset(nchar(CDID) == 7 & substr(CDID,6,6) == "Q") %>% 
-  select(CDID,Deflator = L8GG, GDP = ABMI) %>% 
-  mutate(Year = as.numeric(substr(CDID,1,4)),
-         Quarter = substr(CDID,6,7),
-         Q  = as.numeric(substr(CDID,7,7))) %>% 
-  # For testing purposes, can change later
-  subset(Year >= 1987)  %>% 
-  mutate(Deflator = as.numeric(Deflator),
-         GDP = as.numeric(GDP))
 
 
-# View the filtered data frame
-# head(filtered_df)
+filtered_df <- df %>%
+  # Keep only the quarterly data
+  filter(nchar(CDID) == 7 & substr(CDID, 6, 6) == "Q") %>%
+  # Select relevant columns and rename them
+  dplyr::select(CDID, Deflator = L8GG, GDP = ABMI) %>%
+  # Create new columns and convert types
+  mutate(
+    Year = as.numeric(substr(CDID, 1, 4)),
+    Quarter = substr(CDID, 6, 7),
+    Q = as.numeric(substr(CDID, 7, 7)),
+    Deflator = as.numeric(Deflator),
+    GDP = as.numeric(GDP)
+  ) %>%
+  # Filter by year (can modify for testing)
+  filter(Year >= 1987)
 
-str(filtered_df)
 
 
-# L8GG
+
+  
+
 
 ```
 
@@ -121,7 +135,7 @@ str(filtered_df)
 fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data.csv", skip = 1)
 
 fiscal_proc <- fiscal_raw %>% 
-  select(Date_ID = Transaction, Revenue = OTR, Expenditure = OTE) %>% 
+  dplyr::select(Date_ID = Transaction, Revenue = OTR, Expenditure = OTE) %>% 
   subset(Date_ID !=  "Dataset identifier code" & Date_ID != "Identifier") %>% 
   mutate(Year = as.numeric(gsub("\\D", "", Date_ID)),
          Period = gsub("\\d{4}", "", Date_ID))  %>% 
@@ -183,51 +197,91 @@ data <- fiscal_proc %>%
 
          
 model_data <- data %>% 
-  select(CDID, log_revenue, log_expenditure, log_GDP, log_deflator, mean_SR_Rate)
+  dplyr::select(CDID, log_revenue, log_expenditure, log_GDP, log_deflator, mean_SR_Rate)
 
 
 
 
 ```
+
+Note: VAR analysis requires stability of the system. Need to find code to ensure the eigenvalues of the autoregressive roots lie within the unit circle.
+
+```{r Stationarity Testing}
+
+
+
+
+```
+
+
+
+```{r Bivariate - Optimal Lags}
+
+clean_data <- na.omit(model_data)
+
+tmp <- clean_data[,-1]
+
+OptimalLag <-  VARselect(clean_data[,-c(1)], lag.max = 5, type = "const")
+# OptimalLag$selection
+# OptimalLag$criteria
+
+```
+
+
+
+```{r ReducedVAR}
+# library(vars)
+
+reduced_VAR <- vars::VAR(clean_data[,-c(1)], p = 4)
+# summary(reduced_VAR)
+     
+```
+
+
+
 
 ```{r}
 
-# ggplot(fiscal_proc, aes(x = Year2)) +
-#   geom_line(aes(y = Revenue, color = "Revenue"), size = 1) +
-#   geom_line(aes(y = Expenditure, color = "Expenditure"), size = 1) +
-#   labs(
-#     x = "Date ID",
-#     y = "Amount (? in millions)",
-#     title = "Revenue and Expenditure Over Time",
-#     color = "Legend"
-#   ) +
-#   scale_color_manual(values = c("Revenue" = "blue", "Expenditure" = "red")) +
-#   theme_minimal(base_size = 15) +
-#   theme(
-#     axis.text.x = element_text(angle = 45, hjust = 1),
-#     plot.title = element_text(hjust = 0.5, face = "bold"),
-#     axis.title.x = element_text(face = "bold"),
-#     axis.title.y = element_text(face = "bold"),
-#     legend.position = "bottom",
-#     legend.title = element_text(face = "bold")
-#   )
+ggplot(data, aes(x = Unique_Period)) +
+  geom_line(aes(y = Revenue, color = "Revenue"), size = 1) +
+  geom_line(aes(y = Expenditure, color = "Expenditure"), size = 1) +
+  labs(
+    x = "Date ID",
+    y = "Amount (? in millions)",
+    title = "Revenue and Expenditure Over Time",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("Revenue" = "blue", "Expenditure" = "red")) +
+  theme_minimal(base_size = 15) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.x = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold")
+  )
 
 
 ```
 
 
 
-Identification:
 
-# Recovering Structural Shocks
+# Identification
 
-Let \( Y_t \) be the vector of variables:
+How we recover the structural shocks to conduct meaningful analysis. Recall The reduced form residuals are correlated and lack an economic interpretation. 
+Identification measure requires economic justification. Use short run restrictions with a recursive structure for this. Following Fernandez (2006)
 
-\[ Y_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ T_t \\ P_t \end{pmatrix} \]
+Recovering Structural Shocks
+
+Let \( X_t \) be the vector of variables:
+
+\[ X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ T_t \\ P_t \end{pmatrix} \]
 
 The reduced-form VAR model can be written as:
 
-\[ Y_t = A_1 Y_{t-1} + A_2 Y_{t-2} + \cdots + A_p Y_{t-p} + \epsilon_t \]
+\[ X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + A_p X_{t-p} + \epsilon_t \]
 
 where \( \epsilon_t \) is the vector of reduced-form residuals. To recover the structural shocks \( u_t \), we assume:
 
@@ -253,10 +307,16 @@ Thus, the structural shocks \( u_t \) can be recovered as:
 
 \[ u_t = B^{-1} \epsilon_t \]
 
+Killian and Lutkepohl (2017) highlight that ... is not sufficient for identification of the structural VAR parameters: the identifying assumptions must also be 
+motivated by economic rationale. Following Fernandez (2006), I outline the assumptions captured by the matrix $B$. 
+
+
 
 # Results
 
-# Discussion
+# Robustness
+
+# Discussion/ Policy Implications
 
 # References 
 
