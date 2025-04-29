@@ -57,44 +57,41 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 # Literature Review
 
-@sutherland2012 draw attention to the fiscal challenges facing countries following the Global Financial Crisis, noting that gross government debt has exceeded 100% of GDP for the OECD as an aggregate.@warmedinger2015 emphasise the importance of public debt sustainability for ensuring macroeconomic stability. There are several mechanisms through which excessive debt could harm the economy. For instance, concerns regarding public finances could reduce business confidence, leading to decreased investment and thus a slowdown in growth. Therefore, fiscal consolidation is clearly needed to ensure the long-term resilience of the economy. As a target, @sutherland2012 propose that countries should aim to bring debt levels towards 50% of GDP: a figure which would require the UK to halve its current debt levels. The IMF (2023) argues that to stabilise GDP, fiscal adjustments should be in the region of up to 4% of GDP. Thus, achieving this objective would require significant fiscal adjustments, motivating further research to support the transition towards more sustainable public finances.
-
-While the importance of fiscal consolidation has been highlighted, it is crucial that these measures are not at the expense of the broader economy. By investigating forecast errors for a sample of European countries, @blanchard2013 find that larger anticipated fiscal consolidation was associated with lower growth. This result was interpreted as due to the fiscal multiplier being greater than anticipated by forecasters. Consequently, fiscal tightening would have further dampened demand, and thus improvements in fiscal consolidation would be offset by reduced growth. Fatas and Summers (2018) extend this research, investigating the long-term effects that fiscal adjustments have had on GDP. Their analysis suggests that fiscal consolidations have failed to lower the debt-to-GDP ratio due to a hysteresis effect of contractionary fiscal policy. This research underscores the need for effectively quantifying fiscal multipliers to understand potential trade-offs between various economic objectives. @ilzetzki2013 provide further insight into the fiscal multiplier, suggesting that the heterogeneity in the estimates reported in the literature can be attributed to differences in structural characteristics of the economy considered. This reinforces the importance of research to better understand the fiscal multiplier for different policy instruments, particularly as this may vary across countries.
-
-To achieve this objective, this research will use a Structural Vector Autoregressive (VAR) model to estimate the fiscal multiplier. As a baseline, a three-dimensional VAR is proposed: featuring government revenue, government expenditure, and output. It should be noted that there are several definitions for the fiscal variables used in the literature. Blanchard and Perotti (2002) note that the choice of fiscal variables reflects “theoretical priors.” Therefore, the definitions of the fiscal variables used will need to be clearly articulated, determined based on data availability and explicit economic assumptions. Regarding identification for the structural VAR, @mountford2009 provide convincing economic rationale for sign restrictions on the impulse responses. This strategy imposes fewer restrictions on the model and is thus more robust to misspecification. However, this approach also has drawbacks, as it means that the parameters will only be set identified. Thus, further work may be required to pin down the structural impulse responses (@kilian2017).
-
-# Econometric Methodology
-
-This section outlines the VAR methodology that will be employed by this research. We define the  5-dimensional vector of endogenous variables as: 
 
 
+@sutherland2012 draw attention to the fiscal challenges facing countries following the Global Financial Crisis, noting that gross government debt has exceeded 100% of GDP for the OECD as an aggregate. This has been exacerbated following the Covid pandemic where governments implemented fiscal measures to mitigate the economic costs of the pandemic. Makin and Layton (2021) highlight that governments must employ fiscal responsibility to protect their economies from the risks that high indebtedness exposes them to. 
+@warmedinger2015 emphasise the importance of public debt sustainability for ensuring macroeconomic stability. There are several mechanisms through which excessive debt could harm the economy. For instance, concerns regarding public finances could reduce business confidence, leading to decreased investment and thus a slowdown in growth. Additionally, strained public finances could hinder the ability of economies to react counter cyclically to economic shocks. This rationale is supported by the IMF (2023) who argue that economies should rebuild their fiscal buffers to reduce their debt vulnerabilities. Therefore, fiscal consolidation is clearly needed to ensure the long-term resilience of the economy. As a target, @sutherland2012 propose that countries should aim to bring debt levels towards 50% of GDP: a figure which would require the UK to halve its current debt levels (ONS, 2025). The IMF (2023) argues that to stabilise GDP, fiscal adjustments should be in the region of up to 4% of GDP. Thus, achieving this objective would require significant fiscal adjustments, motivating further research to support the transition towards more sustainable public finances. Alesina, Favero, and Giavazzi (2012) find that permanent fiscal adjustments have lower output costs, interpreting this result as due to business confidence. (easier to forecast when fiscal adjustments are more predictable?) 
 
-\[
-X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ \tau_t \\ P_t \end{pmatrix}
-\]
 
-The reduced-form VAR model can be written as:
+Kumar and Woo (2015) find that greater indebtedness is associated with lower economic growth. They also find noticeable nonlinearities in this result, with the most severe effect when public indebtedness exceeds 90% of GDP. Given the aforementioned level of public indebtedness in the UK ...  
+Blanchard (2019) argue that even when the interest rate is less than the growth rate, and thus there is no fiscal cost of high indebtedness, there may still be a welfare cost due to reduced capital accumulation.
 
-\[
-X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
-\]
+Capek and Cuasera (2020) highlight how methodological choices contribute to the heterogeneity in estimates of fiscal multipliers prevalent in the literature. Consequently, they advocate for explicitly outlining modelling choices and assumptions. 
 
-where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length. In line with XXX we assume the model contains 4 lags. Given the use of quarterly data, this can be interpreted as lags of the model variables having a direct affect for up to a year. THis use of lag is supported by the Akaike Information Criteria. 
+
+
+While the importance of fiscal consolidation has been highlighted, it is crucial that these measures are not at the expense of the broader economy. By investigating forecast errors for a sample of European countries, @blanchard2013 find that larger anticipated fiscal consolidation was associated with lower growth. This result was interpreted as due to the fiscal multiplier being greater than anticipated by forecasters. Consequently, fiscal tightening would have further dampened demand, and thus improvements in fiscal consolidation would be offset by reduced growth. Gechert (2019) adopt a similar methodology, finding that austerity measures in the Euro Area deepened the crisis, contributing to hysterisis effects. 
+Fatas and Summers (2018) extend this research, investigating the long-term effects that fiscal adjustments have had on GDP. Their analysis suggests that fiscal consolidations have failed to lower the debt-to-GDP ratio due to a hysteresis effect of contractionary fiscal policy. This research underscores the need for effectively quantifying fiscal multipliers to understand potential trade-offs between various economic objectives. @ilzetzki2013 provide further insight into the fiscal multiplier, suggesting that the heterogeneity in the estimates reported in the literature can be attributed to differences in structural characteristics of the economy considered. This reinforces the importance of research to better understand the fiscal multiplier for different policy instruments, particularly as this may vary across countries and over time. Additionally, Alesina et al (2015) compare multipliers due to spending and tax adjustments. They find that ... have more severe effects, attributing this to reduced business confidence. Alesina et al (2002) investigate the effect of fiscal policy on investment. 
+
+
+Structural Vector Autoregressions (SVARs) have been prominent in the literature to estimate fiscal multipliers. Various approaches to identification have been used, with XXX (YYYY) noting that after accounting for the empirical specification, the competing identifying approaches have little effect on the estimated multipliers. Blanchard and Perotti (2002) pioneered this strand of the research, leveraging methodologies previously popularised by the monetary economics. To identify their SVAR, Blanchard and Perotti leverage instituional information. They provide a definition for the fiscal variables and highlight that government expenditure is predetermined within a quarter. 
+Recursive measures to identfication have been employed by Fatas and Mihov (YYYY) and Fernandex (2008). Fernandez argues that
+Uhlig and Mountford (200Y) apply restrictions on the signs of the impulse response functions. 
+Caldara and Kamps (2008) reviews the literature on SVAR identification. Caldara and Kamps (2017) introduce a new approach for identification.
+
+
 
 
 
 # Data 
 
+Fiscal variables are at the general level
 
 We use quarterly data for the UK economy covering the period 1987 – 2023. The empirical model is a 5-dimensional VAR model consisting of government expenditure  ($g_t$), net government taxes ($nt_t$), GDP ($G_t$), the GDP deflator inflation rate ($\pi_t$), and the mean of the 3 month treasury rate ($\tau_t$). Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the treasury rate which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. 
 
 The fiscal variables used follow the European System of Accounts (ESA, 2010). This closely follows the literature. In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002)
 
 *NB need to confirm regarding local, central, and general government*
-
-
-Discuss Empirical model, lag structure, data sources, potentially features of the data
-
 
 
 
@@ -182,10 +179,55 @@ Interest_SR <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertatio
   group_by(Year, Q) %>% 
   summarize(mean_SR_Rate = mean(SR_Rate, na.rm = TRUE))
 
+SONIA <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Bank of England  Database.csv") %>% 
+  mutate(Date = dmy(Date),
+         month = month(Date),
+         Year = year(Date),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  group_by(Year, Q) %>% 
+  summarize(mean_SONIA = mean(SONIA, na.rm = TRUE))
+
+
+
+
+
+# Policy_Rate <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Policy Rate.csv") %>% 
+#   mutate(Date = dmy(`Date Changed`)) %>% 
+#   mutate(month = month(Date),
+#          Year = year(Date),
+#          Q = case_when(
+#            month %in% 1:3 ~ 1,
+#            month %in% 4:6 ~ 2,
+#            month %in% 7:9 ~ 3,
+#            month %in% 10:12 ~ 4
+#          )) %>% 
+#   group_by(Year, Q) %>% 
+#   summarize(mean_SONIA = mean(Rate, na.rm = TRUE))
+
+# str(Policy_Rate)
+
+
+
+Policy_Rate <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Policy Rate.csv") %>%
+  mutate(Date = parse_date_time(`Date Changed`, orders = "dmy"),
+         Q = quarter(Date),
+         Year = year(Date)) %>%
+  group_by(Year, Q) %>%
+  summarise(mean_SR_Rate = mean(Rate, na.rm = TRUE), .groups = "drop") %>%
+  complete(Year = full_seq(Year, 1), Q = 1:4) %>%  # Ensure all Year-Quarter combinations
+  arrange(Year, Q) %>%
+  fill(mean_SR_Rate, .direction = "down")  # Fill missing rates by propagating the previous value
+
+
 
 data <- fiscal_proc %>% 
   left_join(filtered_df, by = c("Q" = "Q", "Year" = "Year")) %>% 
-  left_join(Interest_SR, by = c("Q" = "Q", "Year" = "Year")) %>% 
+  left_join(Policy_Rate, by = c("Q" = "Q", "Year" = "Year")) %>% 
   left_join(population, by = c("Year" = "Year")) %>% 
 # Convert variables to per capita, note revenue, expenditure, and GDP are in £ million so need to multiply. Doing this
   mutate(RevenuePerCapita = (Revenue *10^6) /Population,
@@ -199,7 +241,7 @@ data <- fiscal_proc %>%
 
          
 model_data <- data %>% 
-  dplyr::select(CDID, log_revenue, log_expenditure, log_GDP, log_deflator, mean_SR_Rate)
+  dplyr::select(CDID, log_expenditure, mean_SR_Rate, log_GDP, log_revenue,  log_deflator)
 
 
 
@@ -234,13 +276,109 @@ OptimalLag <-  VARselect(clean_data[,-c(1)], lag.max = 5, type = "const")
 ```{r ReducedVAR}
 # library(vars)
 
-reduced_VAR <- vars::VAR(clean_data[,-c(1)], p = 4)
+# reduced_VAR <- VAR(clean_data[, -1], p = 4, type = "const")
+reduced_VAR <- VAR(clean_data[, -1], p = 4)
+
 # summary(reduced_VAR)
+
+# Summary reports the roots of the polynomial. 
      
 ```
 
 
+```{r structural_VAR}
 
+# Define the 5 dimensional lower triangular matrix, A
+amat <- diag(5)
+amat[1,2]
+
+
+# Recover structural VAR using Cholesky decomposition
+# svar_model <- SVAR(reduced_VAR, estmethod = "direct")
+
+# ?SVAR()
+
+# structural_shocks <- residuals(svar_model)
+# irf_result <- irf(svar_model, n.ahead = 10)  # Forecast horizons
+# plot(irf_result)  
+# Visualize IRFs
+
+
+```
+```{r Residuals}
+
+# chol()
+
+# summary(reduced_VAR)
+
+residuals_matrix <- clean_data[, -1] - fitted(reduced_VAR)
+
+
+# Confirm residuals are as reported
+# print(residuals_matrix)
+# residuals(reduced_VAR)
+
+# compute correlation matrix for residuals (sigma)
+
+
+# Compute the correlation matrix
+sigma <- cor(residuals(reduced_VAR), use = "pairwise.complete.obs")
+
+# Confirm residual correlation matrix is as reported
+
+# Print the correlation matrix
+# print(sigma)
+
+# structural impact multiplier matrix
+b <-  chol(sigma)
+# print(b)
+t(b)
+
+
+A_mat <- A(reduced_VAR)
+
+# unlist(b) ** A_mat[1]
+
+
+b** A_mat[[1]]
+
+# str(A_mat[1])
+# 
+# unlist(b)
+# 
+# str(A_mat[1])
+# str(b)
+# 
+# str(A_mat)
+```
+
+```{r, IRFs}
+
+
+
+
+residuals_matrix <- clean_data[, -1] - fitted(reduced_VAR)
+print(residuals_matrix)
+
+```
+
+```{r, IRFs1}
+
+
+
+# structural_shocks <- residuals(svar_model)
+# irf_result <- irf(svar_model, n.ahead = 10)  # Forecast horizons
+# plot(irf_result)  # Visualize IRFs
+
+
+```
+
+```{r, FEVD}
+
+# fevd_result <- fevd(svar_model, n.ahead = 10)
+# plot(fevd_result)
+
+```
 
 ```{r}
 
@@ -268,6 +406,26 @@ ggplot(data, aes(x = Unique_Period)) +
 ```
 
 
+# Econometric Methodology
+
+This section outlines the VAR methodology that will be employed by this research. We define the  5-dimensional vector of endogenous variables as: 
+
+
+
+\[
+X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ \tau_t \\ P_t \end{pmatrix}
+\]
+
+The reduced-form VAR model can be written as:
+
+\[
+X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
+\]
+
+where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length. In line with XXX we assume the model contains 4 lags. Given the use of quarterly data, this can be interpreted as lags of the model variables having a direct affect for up to a year. This use of lag is supported by the Akaike Information Criteria. 
+
+Discuss Empirical model, lag structure, data sources, potentially features of the data
+
 
 
 # Identification
@@ -288,6 +446,8 @@ The reduced-form VAR model can be written as:
 where \( \epsilon_t \) is the vector of reduced-form residuals. To recover the structural shocks \( u_t \), we assume:
 
 \[ \epsilon_t = B u_t \]
+
+$B^-1$ is the structural impact multiplier matrix. 
 
 where \( B \) is a lower triangular matrix. The structural shocks \( u_t \) are assumed to be uncorrelated and have unit variance.
 
@@ -312,13 +472,26 @@ Thus, the structural shocks \( u_t \) can be recovered as:
 Killian and Lutkepohl (2017) highlight that ... is not sufficient for identification of the structural VAR parameters: the identifying assumptions must also be 
 motivated by economic rationale. Following Fernandez (2006), I outline the assumptions captured by the matrix $B$. 
 
+1)	(implementation lags) Quarterly data so G predetermined wrt rest of variables within the quarter. 
+a.	See Blanchard and Perotti (2002), 
+2)	Given physical constraints, the interest rate is assumed not to react contemporaneously to price, net taxes, or output.  
+3)	 However monetary policy shocks are assumed to affect output, net taxes, and prices contemporaneously. Fernandez (2006) justifies this assumptions by noting that interest movements are anticipated and thus they can be transmitted to real variables relatively quickly. 
+NB on the appropriateness of the assumption that interest rate does not react to price/ output.
+4) Due to price stickiness, prices do not react contemperaneously to shocks to GDP, 
+5)	Due to physical constraints in adjusting consumption and investment, net taxes are assumed not to affect economic activity.  
 
+Applying these zero restrictions to the ... we obtain the lower triangular matrix, $B$, which can be recovered from the variance-covariance matrix of the reduced form residuals.
 
 # Results
+
+Ramey (2019) define fiscal multipliers: "change in output due to a change in spending or taxes", and highlight the risk of ignoring fiscal foresight. 
+Gechert (2017)
 
 # Robustness
 
 # Discussion/ Policy Implications
+
+# Conclusion
 
 # Bibliography
 
