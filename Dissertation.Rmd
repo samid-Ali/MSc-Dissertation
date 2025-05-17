@@ -58,6 +58,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 # Introduction
 
+
 # Literature Review
 
 
@@ -88,17 +89,6 @@ Caldara and Kamps (2008) reviews the literature on SVAR identification. Caldara 
 
 
 
-
-
-# Data 
-
-Fiscal variables are at the general level
-
-We use quarterly data for the UK economy covering the period 1987 – 2023. The empirical model is a 5-dimensional VAR model consisting of government expenditure  ($g_t$), net government taxes ($nt_t$), GDP ($G_t$), the GDP deflator inflation rate ($\pi_t$), and the mean of the 3 month treasury rate ($\tau_t$). Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the treasury rate which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. 
-
-The fiscal variables used follow the European System of Accounts (ESA, 2010). This closely follows the literature. In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002)
-
-*NB need to confirm regarding local, central, and general government*
 
 
 
@@ -164,7 +154,7 @@ population <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation
   mutate(Year = as.numeric(Year),
          Population = as.numeric(Population))
 
-Interest_SR <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/3 Month Treasurey Rate.csv") %>% 
+Interest_SR <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/3 month Rate.csv") %>% 
   mutate(Date = dmy(Date),
          month = month(Date),
          Year = year(Date),
@@ -175,7 +165,9 @@ Interest_SR <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertatio
            month %in% 10:12 ~ 4
          )) %>% 
   group_by(Year, Q) %>% 
-  summarize(mean_SR_Rate = mean(SR_Rate, na.rm = TRUE))
+  summarize(mean_SR_Rate = mean(Rate, na.rm = TRUE))
+
+
 
 SONIA <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Bank of England  Database.csv") %>% 
   mutate(Date = dmy(Date),
@@ -190,27 +182,6 @@ SONIA <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data
   group_by(Year, Q) %>% 
   summarize(mean_SONIA = mean(SONIA, na.rm = TRUE))
 
-
-
-
-
-# Policy_Rate <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Policy Rate.csv") %>% 
-#   mutate(Date = dmy(`Date Changed`)) %>% 
-#   mutate(month = month(Date),
-#          Year = year(Date),
-#          Q = case_when(
-#            month %in% 1:3 ~ 1,
-#            month %in% 4:6 ~ 2,
-#            month %in% 7:9 ~ 3,
-#            month %in% 10:12 ~ 4
-#          )) %>% 
-#   group_by(Year, Q) %>% 
-#   summarize(mean_SONIA = mean(Rate, na.rm = TRUE))
-
-# str(Policy_Rate)
-
-
-
 Policy_Rate <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Policy Rate.csv") %>%
   mutate(Date = parse_date_time(`Date Changed`, orders = "dmy"),
          Q = quarter(Date),
@@ -221,11 +192,24 @@ Policy_Rate <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertatio
   arrange(Year, Q) %>%
   fill(mean_SR_Rate, .direction = "down")  # Fill missing rates by propagating the previous value
 
+Exports <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Exports.csv") %>% 
+  mutate(Date = dmy(Month),
+         month = month(Month),
+         Year = year(dmy(Month)),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  group_by(Year, Q) %>% 
+  summarize(Exports = sum(Exports, na.rm = TRUE))
 
 
 data <- fiscal_proc %>% 
   left_join(filtered_df, by = c("Q" = "Q", "Year" = "Year")) %>% 
-  left_join(Policy_Rate, by = c("Q" = "Q", "Year" = "Year")) %>% 
+  left_join(Interest_SR, by = c("Q" = "Q", "Year" = "Year")) %>% 
+  left_join(Exports, by = c("Q" = "Q", "Year" = "Year")) %>% 
   left_join(population, by = c("Year" = "Year")) %>% 
 # Convert variables to per capita, note revenue, expenditure, and GDP are in £ million so need to multiply. Doing this
   mutate(RevenuePerCapita = (Revenue *10^6) /Population,
@@ -241,11 +225,12 @@ data <- fiscal_proc %>%
   mutate(log_revenue = log(Revenue_SA *10^6),
          log_expenditure = log(Expenditure_SA *10^6),
          log_GDP = log(GDP_SA *10^6),
-         log_deflator = log(Deflator))
+         log_deflator = log(Deflator),
+         log_exports = log(Exports))
 
          
 model_data <- data %>% 
-  dplyr::select(CDID, log_expenditure, mean_SR_Rate, log_GDP, log_revenue,  log_deflator)
+  dplyr::select(CDID, log_expenditure, mean_SR_Rate, log_exports, log_GDP, log_revenue,  log_deflator)
 
 
   
@@ -266,6 +251,30 @@ ggplot(data, aes(x = Unique_Period)) +
     color = "Legend"
   ) +
   scale_color_manual(values = c("Revenue" = "blue", "Expenditure" = "red")) +
+  theme_minimal(base_size = 15) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.x = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold")
+  )
+
+
+```
+
+```{r Exports TS}
+
+ggplot(data, aes(x = Unique_Period)) +
+  geom_line(aes(y = Exports, color = "Exports"), size = 1) +
+  labs(
+    x = "Date ID",
+    y = "Amount (? in millions)",
+    title = "Revenue and Expenditure Over Time",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("Exports" = "red")) +
   theme_minimal(base_size = 15) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -305,16 +314,22 @@ ggplot(data, aes(x = Unique_Period)) +
 ```
 ```{r GDP}
 
-ggplot(data, aes(x = Unique_Period))+
-  geom_line(aes(y = GDP, color = "GDP"), size = 1) +
-  geom_line(aes(y = GDP_SA, color = "GDP_SA"), size = 1) +
+# Define scaling factor based on range ratios
+scale_factor <- max(data$Deflator, na.rm = TRUE) / max(data$mean_SR_Rate, na.rm = TRUE)
+
+ggplot(data, aes(x = Unique_Period)) +
+  geom_line(aes(y = Deflator, color = "Deflator"), size = 1) +
+  geom_line(aes(y = mean_SR_Rate * scale_factor, color = "Mean SR Rate"), size = 1, linetype = "dashed") +
+  scale_y_continuous(
+    name = "Amount ",
+    sec.axis = sec_axis(~ . / scale_factor, name = "Mean SR Rate (%)")
+  ) +
   labs(
     x = "Date ID",
-    y = "Amount (? in millions)",
     title = "Revenue and Expenditure Over Time",
     color = "Legend"
   ) +
-  scale_color_manual(values = c("GDP" = "blue", "GDP_SA" = "red")) +
+  scale_color_manual(values = c("Deflator" = "blue", "Mean SR Rate" = "Red")) +
   theme_minimal(base_size = 15) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -324,8 +339,6 @@ ggplot(data, aes(x = Unique_Period))+
     legend.position = "bottom",
     legend.title = element_text(face = "bold")
   )
-
-
 ```
 
 ```{r Deflator}
@@ -374,15 +387,7 @@ ggplot(data, aes(x = Unique_Period)) +
 
 # Econometric Methodology
 
-This section outlines the VAR methodology that will be employed by this research. We define the  5-dimensional vector of endogenous variables as: 
-
-
-
-\[
-X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ \tau_t \\ P_t \end{pmatrix}
-\]
-
-The reduced-form VAR model can be written as:
+This section outlines the VAR methodology that will be employed by this research. The reduced-form VAR model can be written as:
 
 \[
 X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
@@ -390,7 +395,36 @@ X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
 
 where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length. In line with XXX we assume the model contains 4 lags. Given the use of quarterly data, this can be interpreted as lags of the model variables having a direct affect for up to a year. This use of lag is supported by the Akaike Information Criteria. 
 
+Regarding the endogenous variables considered, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional vector autoregressive model consisting of GDP, government expenditure, and governemnet revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Consequently we augment the 
+model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, and 
+
+The data is used at a quarterly frequency from 1987:1 to 2023:3. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002).
+
+Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the short term interest rate, which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. Variables have been seasonally adjusted using X-13ARIMA-SEATS (with the exception of GDP which was sourced after seasonal adjustment). The intention of this is tease out the noise from the data so that the model can estimate the underlying trends. The model includes a trend component to account for ... Gechert (2017) highlight the importance of  
+
+
+
+\[
+X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ \tau_t \\ P_t \end{pmatrix}
+\]
+
+
 Discuss Empirical model, lag structure, data sources, potentially features of the data
+
+## Data  Sources
+- Fiscal Variables (not seasonally adjusted):  
+https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicspending/datasets/esatable25quarterlynonfinancialaccountsofgeneralgovernment
+- UK Exports (seasonally Adjusted, %):  
+https://fred.stlouisfed.org/series/XTEXVA01GBQ188S
+- LFS (Pop aged 16-64):  
+https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/lf2o/lms
+- GDP (SA) and defaltor rate:  
+https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/quarterlynationalaccounts/latest#data-on-gdp-quarterly-national-accounts
+- interest rate (SR. This is dates of changes to the policy rate. Have interpolated to get quarterly data):  
+https://www.bankofengland.co.uk/monetary-policy/the-interest-rate-bank-rate
+- 3 month interest rate:
+
+
 
 ```{r Bivariate - Optimal Lags}
 
@@ -398,7 +432,7 @@ clean_data <- na.omit(model_data)
 
 tmp <- clean_data[,-1]
 
-OptimalLag <-  VARselect(clean_data[,-c(1)], lag.max = 5, type = "const")
+OptimalLag <-  VARselect(clean_data[,-c(1)], lag.max = 5, type = "both")
 OptimalLag$selection
 # OptimalLag$criteria
 
@@ -409,8 +443,8 @@ OptimalLag$selection
 ```{r ReducedVAR}
 # library(vars)
 
-# reduced_VAR <- VAR(clean_data[, -1], p = 4, type = "const")
-reduced_VAR <- VAR(clean_data[, -1], p = 4)
+reduced_VAR <- VAR(clean_data[, -1], p = 4, type = "both")
+# reduced_VAR <- VAR(clean_data[, -1], p = 4)
 
 # summary(reduced_VAR)
 
@@ -419,18 +453,39 @@ reduced_VAR <- VAR(clean_data[, -1], p = 4)
 ```
 Note: VAR analysis requires stability of the system. Need to find code to ensure the eigenvalues of the autoregressive roots lie within the unit circle.
 
+```{r, stability_eigenvalues}
+
+roots(reduced_VAR)
+
+
+```
+
+
+
 
 ```{r structural_VAR}
 
 # Define the 5 dimensional lower triangular matrix, A
 
 # Recover structural VAR using Cholesky decomposition
-Amat <- matrix(c(1, 0, 0, 0, 0,   # Recursive ordering
-                 NA, 1, 0, 0, 0,  
-                 NA, NA, 1, 0, 0,  
-                 NA, NA, NA, 1, 0,  
-                 NA, NA, NA, NA, 1), 
-               nrow = 5, byrow = TRUE)
+
+# Amat <- matrix(c(1, 0, 0, 0, 0,   # Recursive ordering
+#                  NA, 1, 0, 0, 0,  
+#                  NA, NA, 1, 0, 0,  
+#                  NA, NA, NA, 1, 0,  
+#                  NA, NA, NA, NA, 1), 
+#                nrow = 5, byrow = TRUE)
+
+
+Amat <- matrix(c(1, 0, 0, 0, 0, 0,   # Recursive ordering
+                 NA, 1, 0, 0, 0, 0,  
+                 NA, NA, 1, 0, 0, 0, 
+                 NA, NA, NA, 1, 0, 0,  
+                 NA, NA, NA, NA, 1, 0,
+                 NA, NA, NA, NA, NA, 1), 
+               nrow = 6, byrow = TRUE)
+
+
 
 svar_model <- SVAR(reduced_VAR, Amat = Amat, estmethod = "direct")
 # ?SVAR()
@@ -439,7 +494,7 @@ structural_shocks <- residuals(svar_model)
 
 svar_model
 
-irf_result <- irf(svar_model, n.ahead = 10, ci = 0.9, boot = 500, cumulative = FALSE)  # Forecast horizons
+irf_result <- irf(svar_model, n.ahead = 10, ci = 0.9, boot = 5000, cumulative = FALSE)  # Forecast horizons
 # plot(irf_result)
 # Visualize IRFs
 
@@ -502,7 +557,7 @@ for (shock in shock_names) {
 
 
 
-
+FEVD_result
 ```
 
 ```{r, IRFs1}
@@ -518,8 +573,9 @@ for (shock in shock_names) {
 
 ```{r, FEVD}
 
-# fevd_result <- fevd(svar_model, n.ahead = 10)
-# plot(fevd_result)
+normality.test(reduced_VAR)
+
+
 
 ```
 
@@ -527,10 +583,8 @@ for (shock in shock_names) {
 
 # Identification
 
-How we recover the structural shocks to conduct meaningful analysis. Recall The reduced form residuals are correlated and lack an economic interpretation. 
-Identification measure requires economic justification. Use short run restrictions with a recursive structure for this. Following Fernandez (2006)
+Explaining distinction between the reduced form and structural model. Interested in the structural shocks which we will recover as follows.
 
-Recovering Structural Shocks
 
 Let \( X_t \) be the vector of variables:
 
@@ -566,18 +620,18 @@ Thus, the structural shocks \( u_t \) can be recovered as:
 
 \[ u_t = B^{-1} \epsilon_t \]
 
-Killian and Lutkepohl (2017) highlight that ... is not sufficient for identification of the structural VAR parameters: the identifying assumptions must also be 
-motivated by economic rationale. Following Fernandez (2006), I outline the assumptions captured by the matrix $B$. 
 
-1)	(implementation lags) Quarterly data so G predetermined wrt rest of variables within the quarter. 
-a.	See Blanchard and Perotti (2002), 
-2)	Given physical constraints, the interest rate is assumed not to react contemporaneously to price, net taxes, or output.  
-3)	 However monetary policy shocks are assumed to affect output, net taxes, and prices contemporaneously. Fernandez (2006) justifies this assumptions by noting that interest movements are anticipated and thus they can be transmitted to real variables relatively quickly. 
-NB on the appropriateness of the assumption that interest rate does not react to price/ output.
-4) Due to price stickiness, prices do not react contemperaneously to shocks to GDP, 
-5)	Due to physical constraints in adjusting consumption and investment, net taxes are assumed not to affect economic activity.  
 
-Applying these zero restrictions to the ... we obtain the lower triangular matrix, $B$, which can be recovered from the variance-covariance matrix of the reduced form residuals.
+
+Killian and Lutkepohl (2017) highlight that identification of the structural parameters is not a purely statistical concern, the restrictions must also be economically meaningful for the resulting structural parameters to be identified. Therefore we proceed with an exposition of the economic assumptions implicit in the impact multiplier matrix, $B$, comparable to Fernandez (2006). 
+1) Blanchard and Perotti (2002) argue that the use of quarterly data allows government spending to be interpreted as predetermined with respect to the rest of the variables within the quarter, consequently this is ordered first. 
+2) Given physical constraints, the interest rate is assumed not to react contemporaneously to price, net taxes, or output.  
+3) However monetary policy shocks are assumed to affect output, net taxes, and prices contemporaneously. Fernandez (2006) justifies this assumptions by noting that interest movements are anticipated and thus they can be transmitted to real variables relatively quickly. 
+*NB on the appropriateness of the assumption that interest rate does not react to price/ output.*
+4) Due to price stickiness, prices do not react contemporaneously to shocks to GDP, 
+5) Due to physical constraints in adjusting consumption and investment, net taxes are assumed not to affect economic activity.  
+
+
 
 # Results
 
