@@ -222,15 +222,16 @@ data <- fiscal_proc %>%
          GDP_SA = final(seas(ts(GDP, start = min(Year), frequency = 4)))) %>% 
 
 # Convert variables (except interest rate) to logs
+  # Note multiplying by 10^6 for variables that are defined in £millions
   mutate(log_revenue = log(Revenue_SA *10^6),
          log_expenditure = log(Expenditure_SA *10^6),
          log_GDP = log(GDP_SA *10^6),
          log_deflator = log(Deflator),
-         log_exports = log(Exports))
+         log_exports = log(Exports *10^6))
 
          
 model_data <- data %>% 
-  dplyr::select(CDID, log_expenditure, mean_SR_Rate, log_exports, log_GDP, log_revenue,  log_deflator)
+  dplyr::select(Year, CDID, log_expenditure, mean_SR_Rate, log_exports, log_GDP, log_revenue,  log_deflator)
 
 
   
@@ -416,7 +417,7 @@ where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determine
 Regarding the endogenous variables considered, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional vector autoregressive model consisting of GDP, government expenditure, and governemnet revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Consequently we augment the 
 model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, price levels, and trade respectively.
 
-The data is used at a quarterly frequency from 1987:1 to 2023:3. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002).
+The data is used at a quarterly frequency from 1987:1 to 2023:3. As well as allowing for more precise estimates, this level of frequency is necessary for the identification of structural shocks, as outlined in the following section. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002).
 
 Following Fernandez (2006), the natural logarithm of these variables is used, with the exception of the short term interest rate, which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. Capek and Cuaresma (2020) highlight that data used to estimate fiscal multipliers is typically seasonally adjusted. Therefore (with the exception of GDP which was sourced after seasonal adjustment) variables have been seasonally adjusted using X-13ARIMA-SEATS method. 
 The intention of this is tease out the noise from the data so that the model can estimate the underlying trends. The model includes a trend component to account for ... Gechert (2017) highlight the importance of  
@@ -435,7 +436,9 @@ Discuss Empirical model, lag structure, data sources, potentially features of th
 - Fiscal Variables (not seasonally adjusted):  
 https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicspending/datasets/esatable25quarterlynonfinancialaccountsofgeneralgovernment
 - UK Exports (seasonally Adjusted, %):  
-https://fred.stlouisfed.org/series/XTEXVA01GBQ188S
+https://fred.stlouisfed.org/series/XTEXVA01GBQ188S  
+- UK Exports (seasonally Adjusted, £millions):  
+https://fred.stlouisfed.org/series/NXRSAXDCGBQ
 - LFS (Pop aged 16-64):  
 https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/lf2o/lms
 - GDP (SA) and defaltor rate:  
@@ -451,9 +454,9 @@ https://fred.stlouisfed.org/series/IR3TIB01GBM156N
 
 clean_data <- na.omit(model_data)
 
-tmp <- clean_data[,-1]
+tmp <- clean_data[,-c(1,2)]
 
-OptimalLag <-  VARselect(clean_data[,-c(1)], lag.max = 5, type = "both")
+OptimalLag <-  VARselect(clean_data[,-c(1,2)], lag.max = 5, type = "both")
 OptimalLag$selection
 # OptimalLag$criteria
 
@@ -464,7 +467,7 @@ OptimalLag$selection
 ```{r ReducedVAR}
 # library(vars)
 
-reduced_VAR <- VAR(clean_data[, -1], p = 4, type = "both")
+reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 4, type = "both")
 # reduced_VAR <- VAR(clean_data[, -1], p = 4)
 
 # summary(reduced_VAR)
@@ -480,6 +483,10 @@ roots(reduced_VAR)
 
 
 ```
+
+
+
+
 
 
 # Identification
@@ -524,13 +531,13 @@ Thus, the structural shocks \( u_t \) can be recovered as:
 
 
 
-Killian and Lutkepohl (2017) highlight that identification of the structural parameters is not a purely statistical concern, the restrictions must also be economically meaningful for the resulting structural parameters to be identified. Therefore we proceed with an exposition of the economic assumptions implicit in the impact multiplier matrix, $B$, comparable to Fernandez (2006). 
-1) Blanchard and Perotti (2002) argue that the use of quarterly data allows government spending to be interpreted as predetermined with respect to the rest of the variables within the quarter, consequently this is ordered first. 
-2) Given physical constraints, the interest rate is assumed not to react contemporaneously to price, net taxes, or output.  
-3) However monetary policy shocks are assumed to affect output, net taxes, and prices contemporaneously. Fernandez (2006) justifies this assumptions by noting that interest movements are anticipated and thus they can be transmitted to real variables relatively quickly. 
+Killian and Lutkepohl (2017) highlight that identification of the structural parameters is not a purely statistical concern, the restrictions must also be economically meaningful for the resulting structural parameters to be identified. Therefore we proceed with an exposition of the economic assumptions implicit in the impact multiplier matrix, $B$, comparable to Fernandez (2006).  
+1) Blanchard and Perotti (2002) argue that the use of quarterly data allows government spending to be interpreted as predetermined with respect to the rest of the variables within the quarter. This is motivated by implementation lags for changes to government spedning and consequently this is ordered first.  
+2) Given physical constraints, the interest rate is assumed not to react contemporaneously to price, net taxes, or output.   
+3) However monetary policy shocks are assumed to affect output, net taxes, and prices contemporaneously. Fernandez (2006) justifies this assumptions by noting that interest movements are anticipated and thus they can be transmitted to real variables relatively quickly.  
 *NB on the appropriateness of the assumption that interest rate does not react to price/ output.*
-4) Due to price stickiness, prices do not react contemporaneously to shocks to GDP, 
-5) Due to physical constraints in adjusting consumption and investment, net taxes are assumed not to affect economic activity.  
+4) Due to price stickiness, prices do not react contemporaneously to shocks to GDP,   
+5) Due to physical constraints in adjusting consumption and investment, net taxes are assumed not to affect economic activity.   
 
 
 
@@ -652,7 +659,127 @@ normality.test(reduced_VAR)
 
 
 
+Interested in assessing differences in the fiscal multipliers pre / post GFC
 
+```{r Chow tmp}
+
+
+# Split data by pre- and post-2008 periods
+clean_data1 <- model_data %>% na.omit() %>% filter(Year < 2008)
+clean_data2 <- model_data %>% na.omit() %>% filter(Year >= 2008)
+
+# Determine optimal lag selection for VAR models
+OptimalLag1 <- VARselect(clean_data1[,-c(1,2)], lag.max = 5, type = "trend")$selection
+OptimalLag2 <- VARselect(clean_data2[,-c(1,2)], lag.max = 5, type = "trend")$selection
+
+# Estimate reduced-form VAR models
+reduced_VAR1 <- VAR(clean_data1[,-c(1,2)], p = 4, type = "both")
+reduced_VAR2 <- VAR(clean_data2[,-c(1,2)], p = 4, type = "both")
+
+# Check stability of estimated VAR models
+roots(reduced_VAR1)
+roots(reduced_VAR2)
+
+# Define recursive identification matrix
+Amat <- matrix(c(1, 0, 0, 0, 0, 0,   
+                 NA, 1, 0, 0, 0, 0,  
+                 NA, NA, 1, 0, 0, 0,  
+                 NA, NA, NA, 1, 0, 0,  
+                 NA, NA, NA, NA, 1, 0,
+                 NA, NA, NA, NA, NA, 1), 
+               nrow = 6, byrow = TRUE)
+
+# Estimate SVAR models with recursive restrictions
+svar_model1 <- SVAR(reduced_VAR1, Amat = Amat, estmethod = "direct")
+svar_model2 <- SVAR(reduced_VAR2, Amat = Amat, estmethod = "direct")
+
+# Compute impulse response functions (IRFs)
+irf_result1 <- irf(svar_model1, n.ahead = 10, ci = 0.9, boot = 500, cumulative = FALSE)
+irf_result2 <- irf(svar_model2, n.ahead = 10, ci = 0.9, boot = 500, cumulative = FALSE)
+
+# Compute forecast error variance decomposition (FEVD)
+FEVD_result1 <- fevd(svar_model1, n.ahead = 10)
+FEVD_result2 <- fevd(svar_model2, n.ahead = 10)
+
+# Plot FEVD results
+plot(FEVD_result1)
+plot(FEVD_result2)
+
+# Function to process IRF data for plotting
+process_irf <- function(irf_result) {
+  # Convert IRF results to data frames and add time index
+  irf_long <- irf_result$irf %>%
+    as.data.frame() %>%
+    mutate(Time = seq_len(nrow(.))) %>%
+    pivot_longer(cols = -Time, names_to = "Variable", values_to = "IRF")
+  
+  lower_long <- irf_result$Lower %>%
+    as.data.frame() %>%
+    mutate(Time = seq_len(nrow(.))) %>%
+    pivot_longer(cols = -Time, names_to = "Variable", values_to = "Lower")
+  
+  upper_long <- irf_result$Upper %>%
+    as.data.frame() %>%
+    mutate(Time = seq_len(nrow(.))) %>%
+    pivot_longer(cols = -Time, names_to = "Variable", values_to = "Upper")
+  
+  # Merge confidence bounds and extract variable components
+  irf_long <- irf_long %>%
+    left_join(lower_long, by = c("Time", "Variable")) %>%
+    left_join(upper_long, by = c("Time", "Variable")) %>%
+    mutate(Shock = sub("\\..*", "", Variable),  # Extract shock name
+           Affected_Var = sub(".*\\.", "", Variable))  # Extract affected variable
+  
+  return(irf_long)
+}
+
+# Function to plot IRFs with facets
+plot_irf <- function(irf_long) {
+  shock_names <- unique(irf_long$Shock)
+  
+  # Generate plots for each shock
+  for (shock in shock_names) {
+    p <- ggplot(irf_long %>% filter(Shock == shock), aes(x = Time, y = IRF)) +
+      geom_line(size = 1, color = "blue") +  
+      geom_line(aes(y = Lower), linetype = "dashed", color = "gray") +
+      geom_line(aes(y = Upper), linetype = "dashed", color = "gray") +
+      geom_hline(yintercept = 0, color = "black", size = 1) +  
+      facet_wrap(~ Affected_Var, scales = "free_y") +  
+      theme_minimal() +
+      labs(title = paste("Impulse Response for Shock:", shock),
+           x = "Time",
+           y = "Response")
+    
+    print(p)  # Display each figure separately
+  }
+}
+
+# Apply processing and plotting functions
+
+```
+
+```{r, SVAR 1}
+
+normality.test(reduced_VAR1)
+
+irf_long1 <- process_irf(irf_result1)
+
+plot_irf(irf_long1)
+
+
+
+```
+
+```{r, SVAR 2}
+
+normality.test(reduced_VAR2)
+
+irf_long2 <- process_irf(irf_result2)
+
+
+plot_irf(irf_long2)
+
+```
 
 # Results
 
