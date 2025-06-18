@@ -87,6 +87,7 @@ Recursive measures to identfication have been employed by Fatas and Mihov (YYYY)
 Uhlig and Mountford (200Y) apply restrictions on the signs of the impulse response functions. 
 Caldara and Kamps (2008) reviews the literature on SVAR identification. Caldara and Kamps (2017) introduce a new approach for identification.
 
+*Add DSGE lit for context*
 
 
 
@@ -205,12 +206,25 @@ Exports <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Da
   group_by(Year, Q) %>% 
   summarize(Exports = sum(Exports, na.rm = TRUE))
 
+ERI <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Boe ERI.csv") %>% 
+  mutate(
+         month = month(Date),
+         Year = year(dmy(Date)),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  rename(ERI = Value)
+
 
 data <- fiscal_proc %>% 
   left_join(filtered_df, by = c("Q" = "Q", "Year" = "Year")) %>% 
   left_join(Interest_SR, by = c("Q" = "Q", "Year" = "Year")) %>% 
   left_join(Exports, by = c("Q" = "Q", "Year" = "Year")) %>% 
   left_join(population, by = c("Year" = "Year")) %>% 
+  left_join(ERI, by = c("Q" = "Q", "Year" = "Year")) %>%
 # Convert variables to per capita, note revenue, expenditure, and GDP are in £ million so need to multiply. Doing this
   mutate(RevenuePerCapita = (Revenue *10^6) /Population,
          ExpenditurePerCapita = (Expenditure *10^6) /Population,
@@ -220,6 +234,13 @@ data <- fiscal_proc %>%
    mutate(Revenue_SA = final(seas(ts(Revenue, start = min(Year), frequency = 4))),
          Expenditure_SA = final(seas(ts(Expenditure, start = min(Year), frequency = 4))),
          GDP_SA = final(seas(ts(GDP, start = min(Year), frequency = 4)))) %>% 
+ # convert back to numeric
+     mutate(
+    Revenue_SA = as.numeric(Revenue_SA),
+    Expenditure_SA = as.numeric(Expenditure_SA),
+    GDP_SA = as.numeric(GDP_SA)
+  ) %>%
+
 
 # Convert variables (except interest rate) to logs
   # Note multiplying by 10^6 for variables that are defined in £millions
@@ -227,12 +248,31 @@ data <- fiscal_proc %>%
          log_expenditure = log(Expenditure_SA *10^6),
          log_GDP = log(GDP_SA *10^6),
          log_deflator = log(Deflator),
-         log_exports = log(Exports *10^6))
+         log_ERI = log(ERI),
+         log_exports = log(Exports *10^6)) %>% 
+  mutate(
+    dif_log_revenue = log_revenue - lag(log_revenue),
+    dif_log_expenditure = log_expenditure - lag(log_expenditure),
+    dif_log_GDP = log_GDP - lag(log_GDP),
+    dif_log_deflator = log_deflator - lag(log_deflator),
+    dif_log_ERI = log_ERI - lag(log_ERI),
+    dif_interest_rate = mean_SR_Rate - lag(mean_SR_Rate),
+    dif_log_exports = log_exports - lag(log_exports)
+  )
+
 
          
-model_data <- data %>% 
-  dplyr::select(Year, CDID, log_expenditure, mean_SR_Rate, log_exports, log_GDP, log_revenue,  log_deflator)
+model_data2 <- data %>%
+  dplyr::select(Year, CDID, log_expenditure, mean_SR_Rate, log_GDP, log_ERI, log_revenue,  log_deflator)
 
+# model_data <- data %>%
+#   dplyr::select(Year, CDID, log_expenditure, mean_SR_Rate, log_exports, log_GDP, log_revenue,  log_deflator)
+
+# model_data <- data %>%
+#   dplyr::select(Year, CDID, dif_log_expenditure, dif_interest_rate, dif_log_exports, dif_log_GDP, dif_log_revenue,  dif_log_deflator)
+
+model_data <- data %>%
+dplyr::select(Year, CDID, dif_log_expenditure, dif_interest_rate, dif_log_GDP, dif_log_ERI, dif_log_revenue,  dif_log_deflator)
 
   
 
@@ -240,6 +280,7 @@ model_data <- data %>%
 ```
 
 
+## Data Proc above
 
 
 ```{r  }
@@ -270,7 +311,7 @@ X_t = \mu_0 + \mu_1 +  A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsil
 
 where \( \epsilon_t \) is the vector of reduced-form residuals and $p$ determines the lag length. In line with XXX we assume the model contains 4 lags. Given the use of quarterly data, this can be interpreted as lags of the model variables having a direct affect for up to a year. This use of lag is supported by the Akaike Information Criteria. The VAR model above assumes that the data generating process includes a deterministic linear time trend and constant intercept. This is included to mitigate for potential spurious regression between trending factors in the endogenous variables and to account for their nonzero mean.
 
-Regarding the endogenous variables considered, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional vector autoregressive model consisting of GDP, government expenditure, and governemnet revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Consequently we augment the model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, price levels, and trade respectively.
+Regarding the endogenous variables considered, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional vector autoregressive model consisting of GDP, government expenditure, and governemnet revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Consequently we augment the model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, price levels, and trade respectively. Consequently, the impulse response functions reported later are better interpreted as the response of GDP to the fiscal variables. 
 
 The data is used at a quarterly frequency from 1987:1 to 2023:3. As well as allowing for more precise estimates, this level of frequency is necessary for the identification of structural shocks, as outlined in the following section. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Cf Blanchard and Perotti (2002).
 
@@ -397,6 +438,32 @@ ggplot(data, aes(x = Unique_Period)) +
 
 
 ```
+```{r ERI TS}
+
+ggplot(data, aes(x = Unique_Period)) +
+  geom_line(aes(y = ERI, color = "ERI"), size = 1) +
+  labs(
+    x = "Date ID",
+    y = "Amount (? in millions)",
+    title = "Exchange Rate Index Over Time",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("ERI" = "red")) +
+  theme_minimal(base_size = 15) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.x = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold")
+  )
+
+
+```
+
+
+
 ```{r GDP TS}
 
 ggplot(data, aes(x = Unique_Period)) +
@@ -457,7 +524,7 @@ ggplot(data, aes(x = Unique_Period)) +
   labs(
     x = "Date ID",
     y = "Amount (? in millions)",
-    title = "Revenue and Expenditure Over Time",
+    title = "Deflator Over Time",
     color = "Legend"
   ) +
   scale_color_manual(values = c("Deflator" = "blue", "Expenditure" = "red")) +
@@ -474,13 +541,17 @@ ggplot(data, aes(x = Unique_Period)) +
 
 ```
 
+## Model
+
 ```{r Bivariate - Optimal Lags}
 
 clean_data <- na.omit(model_data)
+clean_data2 <- na.omit(model_data2)
 
 tmp <- clean_data[,-c(1,2)]
 
-OptimalLag <-  VARselect(clean_data[,-c(1,2)], lag.max = 5, type = "both")
+OptimalLag <-  VARselect(clean_data[,-c(1,2)], lag.max = 5, type = "const")
+OptimalLag <-  VARselect(clean_data2[,-c(1,2)], lag.max = 5, type = "both")
 OptimalLag$selection
 # OptimalLag$criteria
 
@@ -491,19 +562,23 @@ OptimalLag$selection
 ```{r ReducedVAR}
 # library(vars)
 
-reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 4, type = "both")
+reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 1, type = "const")
+reduced_VAR2 <- VAR(clean_data2[,-c(1,2)], p = 4, type = "both")
 # reduced_VAR <- VAR(clean_data[, -1], p = 4)
+
+roots(reduced_VAR)
+roots(reduced_VAR2)
 
 # summary(reduced_VAR)
 
 # Summary reports the roots of the polynomial. 
-     
+
 ```
 Note: VAR analysis requires stability of the system. Need to find code to ensure the eigenvalues of the autoregressive roots lie within the unit circle.
 
 ```{r, stability_eigenvalues}
 
-roots(reduced_VAR)
+# roots(reduced_VAR)
 
 
 ```
@@ -576,6 +651,95 @@ Killian and Lutkepohl (2017) highlight that identification of the structural par
 
 ## Unrestricted Model
 
+### SVAR Recode
+
+```{r structural_VAR_recode}
+
+
+
+Amat <- matrix(c(1, 0, 0, 0, 0, 0,   # Recursive ordering
+                 NA, 1, 0, 0, 0, 0,  
+                 NA, NA, 1, 0, 0, 0, 
+                 NA, NA, NA, 1, 0, 0,  
+                 NA, NA, NA, NA, 1, 0,
+                 NA, NA, NA, NA, NA, 1), 
+               nrow = 6, byrow = TRUE)
+
+
+
+svar_model <- SVAR(reduced_VAR, Amat = Amat, estmethod = "direct")
+svar_model2 <- SVAR(reduced_VAR2, Amat = Amat, estmethod = "direct")
+# ?SVAR()
+
+structural_shocks <- residuals(svar_model)
+
+
+
+cov_matrix <- summary(reduced_VAR)$covres
+chol(cov_matrix)
+
+
+
+library(vars)
+
+# Step 1: Extract covariance matrix from the reduced-form VAR
+cov_matrix <- summary(reduced_VAR)$covres
+
+# Step 2: Compute Cholesky decomposition
+chol_matrix <- t(chol(cov_matrix))
+
+# Step 3: Apply zero restrictions directly
+# Example: Set specific elements to zero manually (adjust indices based on theory)
+B_tilde <- chol_matrix
+# B_tilde[2,1] <- 0  # Example: Restrict second variable's response to first shock
+# B_tilde[3,1] <- 0  # Restrict third variable's response to first shock
+
+# Step 4: Verify imposed restrictions
+# print(B_tilde)
+
+# Normalize B_tilde so the diagonal elements are 1
+normalize_matrix <- function(B) {
+  diag_values <- diag(B)  # Extract diagonal elements
+  B_normalized <- B / diag_values  # Divide each column by its diagonal element
+  return(B_normalized)
+}
+
+# Apply normalization
+B_tilde_normalized <- normalize_matrix(B_tilde)
+
+# Verify the transformation
+print(B_tilde_normalized)
+```
+
+#### IRFs recode
+
+```{r, IRF_Recode}
+
+
+
+# # Function to compute IRFs
+# compute_irf <- function(A, B, horizon) {
+#   k <- ncol(A)
+#   IRF <- array(0, dim = c(k, k, horizon + 1))
+#   IRF[, , 1] <- B  # Impact at time 0
+# 
+#   for (h in 2:(horizon + 1)) {
+#     IRF[, , h] <- A %*% IRF[, , h - 1]
+#   }
+#   
+#   return(IRF)
+# }
+# 
+# # Example execution:
+# A_matrix <- matrix(c(0.5, 0.2, 0.1, 0.3, 0.7, -0.2, -0.1, 0.4, 0.6), 3, 3)  # Replace with actual VAR coefficients
+# IRFs <- compute_irf(A_matrix, B_tilde_normalized, horizon = 10)
+# print(IRFs)
+
+
+```
+
+
+### SVAR functions
 ```{r structural_VAR}
 
 # Define the 5 dimensional lower triangular matrix, A
@@ -601,67 +765,91 @@ Amat <- matrix(c(1, 0, 0, 0, 0, 0,   # Recursive ordering
 
 
 svar_model <- SVAR(reduced_VAR, Amat = Amat, estmethod = "direct")
+svar_model2 <- SVAR(reduced_VAR2, Amat = Amat, estmethod = "direct")
 # ?SVAR()
 
 structural_shocks <- residuals(svar_model)
 
 svar_model
 
-irf_result <- irf(svar_model, n.ahead = 10, ci = 0.9, boot = 5000, cumulative = FALSE)  # Forecast horizons
+irf_result <- irf(svar_model, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
+irf_result2 <- irf(svar_model2, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
+# irf_result <- irf(svar_model, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
 # plot(irf_result)
 # Visualize IRFs
 
 FEVD_result <- fevd(svar_model, n.ahead = 10)  # Forecast horizons
+FEVD_result2 <- fevd(svar_model2, n.ahead = 10)  # Forecast horizons
 plot(FEVD_result)
+plot(FEVD_result2)
 
 ```
 
-
+## IRFs
 
 ```{r, IRFs}
-# Extract the first and second parts of the variable name
-# Convert IRF results to data frames
-irf_data <- as.data.frame(irf_result$irf)
-irf_lower <- as.data.frame(irf_result$Lower)
-irf_upper <- as.data.frame(irf_result$Upper)
-
-# Add a time index to align data
-irf_data$Time <- seq_len(nrow(irf_data))
-irf_lower$Time <- irf_data$Time
-irf_upper$Time <- irf_data$Time
-
-# Reshape data for structured plotting
-irf_long <- tidyr::pivot_longer(irf_data, cols = -Time, names_to = "Variable", values_to = "IRF")
-lower_long <- tidyr::pivot_longer(irf_lower, cols = -Time, names_to = "Variable", values_to = "Lower")
-upper_long <- tidyr::pivot_longer(irf_upper, cols = -Time, names_to = "Variable", values_to = "Upper")
-
-# Merge confidence bounds into IRF dataset
-irf_long <- irf_long %>%
-  dplyr::left_join(lower_long, by = c("Time", "Variable")) %>%
-  dplyr::left_join(upper_long, by = c("Time", "Variable")) %>%
-  mutate(Shock = sub("\\..*", "", Variable),  # Extract part before dot
-         Affected_Var = sub(".*\\.", "", Variable))  # Extract part after dot
+plot_irf_with_ci <- function(IRF_name) {
 
 
+  # Extract response and confidence intervals
+  irf_data  <- as.data.frame(IRF_name$irf)
+  irf_lower <- as.data.frame(IRF_name$Lower)
+  irf_upper <- as.data.frame(IRF_name$Upper)
 
+  # Create time index
+  irf_data$Time  <- seq_len(nrow(irf_data))
+  irf_lower$Time <- irf_data$Time
+  irf_upper$Time <- irf_data$Time
 
-shock_names <- unique(irf_long$Shock)
-#
-for (shock in shock_names) {
-  p <- ggplot(irf_long %>% filter(Shock == shock), aes(x = Time, y = IRF)) +
-    geom_line(size = 1, color = "blue") +  # Keep all lines the same color
-    geom_line(aes(y = Lower), linetype = "dashed", color = "gray") +
-    geom_line(aes(y = Upper), linetype = "dashed", color = "gray") +
-    geom_hline(yintercept = 0, color = "black", size = 1) +  # Thick black x-axis line at y = 0
-    facet_wrap(~ Affected_Var, scales = "free_y") +  # Create facets for affected variables
-    theme_minimal() +
-    labs(title = paste("Impulse Response for Shock:", shock),
-         x = "Time",
-         y = "Response")
+  # Reshape to long format
+  irf_long   <- pivot_longer(irf_data, cols = -Time, names_to = "Variable", values_to = "IRF")
+  lower_long <- pivot_longer(irf_lower, cols = -Time, names_to = "Variable", values_to = "Lower")
+  upper_long <- pivot_longer(irf_upper, cols = -Time, names_to = "Variable", values_to = "Upper")
 
-  print(p)  # Print each figure separately
+  # Merge and label
+  irf_combined <- irf_long %>%
+    left_join(lower_long, by = c("Time", "Variable")) %>%
+    left_join(upper_long, by = c("Time", "Variable")) %>%
+    mutate(
+      Shock = sub("\\..*", "", Variable),
+      Affected_Var = sub(".*\\.", "", Variable)
+    )
+
+  # Plot IRFs by shock
+  shock_names <- unique(irf_combined$Shock)
+
+  for (shock in shock_names) {
+    p <- irf_combined %>%
+      filter(Shock == shock) %>%
+      ggplot(aes(x = Time, y = IRF)) +
+      geom_line(size = 1.2, color = "#1f77b4") +
+      geom_line(aes(y = Lower), linetype = "dashed", color = "#7f7f7f", size = 0.9) +
+      geom_line(aes(y = Upper), linetype = "dashed", color = "#7f7f7f", size = 0.9) +
+      geom_hline(yintercept = 0, color = "black", size = 1.1) +
+      facet_wrap(~ Affected_Var, scales = "free_y") +
+      theme_minimal(base_family = "serif") +
+      theme(
+        plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_line(color = "gray85"),
+        panel.grid.minor = element_blank(),
+        strip.text = element_text(size = 14, face = "bold")
+      ) +
+      labs(
+        title = paste("Impulse Response for Shock:", shock),
+        x = "Time",
+        y = "Response"
+      ) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
+
+    print(p)
+  }
 }
 
+plot_irf_with_ci(irf_result)
+plot_irf_with_ci(irf_result2)
 ```
 
 
@@ -700,109 +888,87 @@ Interested in assessing differences in the fiscal multipliers pre / post GFC
 ```{r Chow tmp}
 
 
-# Split data by pre- and post-2008 periods
-clean_data1 <- model_data %>% na.omit() %>% filter(Year < 2008)
-clean_data2 <- model_data %>% na.omit() %>% filter(Year >= 2008)
+names(model_data)
 
-# Determine optimal lag selection for VAR models
-OptimalLag1 <- VARselect(clean_data1[,-c(1,2)], lag.max = 5, type = "both")$selection
-OptimalLag2 <- VARselect(clean_data2[,-c(1,2)], lag.max = 5, type = "both")$selection
+mean(model_data$dif_log_expenditure, na.rm = TRUE)
+mean(model_data$dif_interest_rate, na.rm = TRUE)
+mean(model_data$dif_log_exports, na.rm = TRUE)
+mean(model_data$dif_log_GDP, na.rm = TRUE)
+mean(model_data$dif_log_revenue, na.rm = TRUE)
+mean(model_data$dif_deflator_rate, na.rm = TRUE)
 
-# OptimalLag1
-# OptimalLag2
+run_var_analysis <- function(model_data) {
 
-# Estimate reduced-form VAR models
-reduced_VAR1 <- VAR(clean_data1[,-c(1,2)], p = 4, type = "both")
-reduced_VAR2 <- VAR(clean_data2[,-c(1,2)], p = 4, type = "both")
+  # Extract suffix from input name
+  input_name <- deparse(substitute(model_data))
+  suffix <- sub("^[^_]+_", "", input_name)
+  suffix <- ifelse(nchar(suffix) == 0, "data", suffix)
 
-# [,-c(1,2,5)]
+  # Split the data into pre- and post-2008 samples
+clean_data_a <- model_data %>%
+  filter(Year < 2008 & complete.cases(.))
+clean_data_b <- model_data %>% filter(!is.na(Year) & Year >= 2008)
 
-# Check stability of estimated VAR models
-roots(reduced_VAR1)
-roots(reduced_VAR2)
+  assign(paste0("clean_data_a_", suffix), clean_data_a, envir = .GlobalEnv)
+  assign(paste0("clean_data_b_", suffix), clean_data_b, envir = .GlobalEnv)
 
-# Define recursive identification matrix
+  # Lag selection
+  lag_a <- VARselect(clean_data_a[,-c(1,2)], lag.max = 5, type = "const")$selection
+  lag_b <- VARselect(clean_data_b[,-c(1,2)], lag.max = 5, type = "const")$selection
+  print(list(OptimalLag_Pre2008 = lag_a, OptimalLag_Post2008 = lag_b))
 
-Amat <- matrix(c(1, 0, 0, 0, 0, 0,
-                 NA, 1, 0, 0, 0, 0,
-                 NA, NA, 1, 0, 0, 0,
-                 NA, NA, NA, 1, 0, 0,
-                 NA, NA, NA, NA, 1, 0,
-                 NA, NA, NA, NA, NA, 1),
-               nrow = 6, byrow = TRUE)
+  # Estimate reduced-form VARs
+  var_a <- VAR(clean_data_a[,-c(1,2)], p = 4, type = "const")
+  var_b <- VAR(clean_data_b[,-c(1,2)], p = 4, type = "const")
 
+  assign(paste0("reduced_VAR_a_", suffix), var_a, envir = .GlobalEnv)
+  assign(paste0("reduced_VAR_b_", suffix), var_b, envir = .GlobalEnv)
 
-# Amat <- matrix(c(1, 0, 0, 0, 0,    
-#                  NA, 1, 0, 0, 0,   
-#                  NA, NA, 1, 0, 0,   
-#                  NA, NA, NA, 1, 0,   
-#                  NA, NA, NA, NA, 1), 
-#                nrow = 5, byrow = TRUE)
+  # Check stability
+  print(roots(var_a))
+  print(roots(var_b))
 
-# Estimate SVAR models with recursive restrictions
-svar_model1 <- SVAR(reduced_VAR1, Amat = Amat, estmethod = "direct")
-svar_model2 <- SVAR(reduced_VAR2, Amat = Amat, estmethod = "direct")
+  # Recursive identification matrix
+  k <- ncol(clean_data_a[,-c(1,2)])
+  Amat <- diag(1, k)
+  Amat[upper.tri(Amat)] <- NA
 
-# Compute impulse response functions (IRFs)
-irf_result1 <- irf(svar_model1, n.ahead = 10, ci = 0.9, boot = 500, cumulative = FALSE)
-irf_result2 <- irf(svar_model2, n.ahead = 10, ci = 0.9, boot = 500, cumulative = FALSE)
+  # Estimate SVARs
+  svar_a <- SVAR(var_a, Amat = Amat, estmethod = "direct")
+  svar_b <- SVAR(var_b, Amat = Amat, estmethod = "direct")
 
-# Compute forecast error variance decomposition (FEVD)
-FEVD_result1 <- fevd(svar_model1, n.ahead = 10)
-FEVD_result2 <- fevd(svar_model2, n.ahead = 10)
+  assign(paste0("svar_model_a_", suffix), svar_a, envir = .GlobalEnv)
+  assign(paste0("svar_model_b_", suffix), svar_b, envir = .GlobalEnv)
 
-# Plot FEVD results
-plot(FEVD_result1)
-plot(FEVD_result2)
+  # IRFs
+  irf_a <- irf(svar_a, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)
+  irf_b <- irf(svar_b, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)
 
-# Function to process IRF data for plotting
-process_irf <- function(irf_result) {
-  # Convert IRF results to data frames and add time index
-  irf_long <- irf_result$irf %>%
-    as.data.frame() %>%
-    mutate(Time = seq_len(nrow(.))) %>%
-    pivot_longer(cols = -Time, names_to = "Variable", values_to = "IRF")
+  assign(paste0("irf_result_a_", suffix), irf_a, envir = .GlobalEnv)
+  assign(paste0("irf_result_b_", suffix), irf_b, envir = .GlobalEnv)
+
+  # FEVDs
+  fevd_a <- fevd(svar_a, n.ahead = 10)
+  fevd_b <- fevd(svar_b, n.ahead = 10)
+
+  assign(paste0("FEVD_result_a_", suffix), fevd_a, envir = .GlobalEnv)
+  assign(paste0("FEVD_result_b_", suffix), fevd_b, envir = .GlobalEnv)
+
+  # Plot FEVDs
+  plot(fevd_a)
+  plot(fevd_b)
   
-  lower_long <- irf_result$Lower %>%
-    as.data.frame() %>%
-    mutate(Time = seq_len(nrow(.))) %>%
-    pivot_longer(cols = -Time, names_to = "Variable", values_to = "Lower")
+  # irf_result_a <- irf(svar_a, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
+  # irf_result_b <- irf(svar_b, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
+
   
-  upper_long <- irf_result$Upper %>%
-    as.data.frame() %>%
-    mutate(Time = seq_len(nrow(.))) %>%
-    pivot_longer(cols = -Time, names_to = "Variable", values_to = "Upper")
-  
-  # Merge confidence bounds and extract variable components
-  irf_long <- irf_long %>%
-    left_join(lower_long, by = c("Time", "Variable")) %>%
-    left_join(upper_long, by = c("Time", "Variable")) %>%
-    mutate(Shock = sub("\\..*", "", Variable),  # Extract shock name
-           Affected_Var = sub(".*\\.", "", Variable))  # Extract affected variable
-  
-  return(irf_long)
 }
+run_var_analysis(model_data)
 
-# Function to plot IRFs with facets
-plot_irf <- function(irf_long) {
-  shock_names <- unique(irf_long$Shock)
-  
-  # Generate plots for each shock
-  for (shock in shock_names) {
-    p <- ggplot(irf_long %>% filter(Shock == shock), aes(x = Time, y = IRF)) +
-      geom_line(size = 1, color = "blue") +  
-      geom_line(aes(y = Lower), linetype = "dashed", color = "gray") +
-      geom_line(aes(y = Upper), linetype = "dashed", color = "gray") +
-      geom_hline(yintercept = 0, color = "black", size = 1) +  
-      facet_wrap(~ Affected_Var, scales = "free_y") +  
-      theme_minimal() +
-      labs(title = paste("Impulse Response for Shock:", shock),
-           x = "Time",
-           y = "Response")
-    
-    print(p)  # Display each figure separately
-  }
-}
+run_var_analysis(model_data2)
+
+
+# plot_irf_with_ci(irf_result2_data)
 
 # Apply processing and plotting functions
 
@@ -812,13 +978,83 @@ plot_irf <- function(irf_long) {
 
 ```{r, SVAR 1}
 
-normality.test(reduced_VAR1)
+plot_irf_with_ci(irf_result_a_data)
+plot_irf_with_ci(irf_result_a_data2)
 
-irf_long1 <- process_irf(irf_result1)
+# normality.test(reduced_VAR1)
 
-plot_irf(irf_long1)
+# irf_long1 <- process_irf(irf_result1_data)
+
+# plot_irf(irf_long1)
+
+# roots(reduced_VAR1)
 
 
+
+# # Function to process IRF data for plotting
+# process_irf <- function(irf_result) {
+#   # Convert IRF results to data frames and add time index
+#   irf_long <- irf_result$irf %>%
+#     as.data.frame() %>%
+#     mutate(Time = seq_len(nrow(.))) %>%
+#     pivot_longer(cols = -Time, names_to = "Variable", values_to = "IRF")
+#   
+#   lower_long <- irf_result$Lower %>%
+#     as.data.frame() %>%
+#     mutate(Time = seq_len(nrow(.))) %>%
+#     pivot_longer(cols = -Time, names_to = "Variable", values_to = "Lower")
+#   
+#   upper_long <- irf_result$Upper %>%
+#     as.data.frame() %>%
+#     mutate(Time = seq_len(nrow(.))) %>%
+#     pivot_longer(cols = -Time, names_to = "Variable", values_to = "Upper")
+#   
+#   # Merge confidence bounds and extract variable components
+#   irf_long <- irf_long %>%
+#     left_join(lower_long, by = c("Time", "Variable")) %>%
+#     left_join(upper_long, by = c("Time", "Variable")) %>%
+#     mutate(Shock = sub("\\..*", "", Variable),  # Extract shock name
+#            Affected_Var = sub(".*\\.", "", Variable))  # Extract affected variable
+#   
+#   return(irf_long)
+# }
+# 
+# # Function to plot IRFs with facets
+# plot_irf <- function(irf_long) {
+#   shock_names <- unique(irf_long$Shock)
+#   
+#   # Generate plots for each shock
+#   for (shock in shock_names) {
+#     p <- ggplot(irf_long %>% filter(Shock == shock), aes(x = Time, y = IRF)) +
+#       geom_line(size = 1.2, color = "#1f77b4") +  # Darker blue for better contrast
+#       geom_line(aes(y = Lower), linetype = "dashed", color = "#7f7f7f", size = 0.9) +  # Softer gray for CI bounds
+#       geom_line(aes(y = Upper), linetype = "dashed", color = "#7f7f7f", size = 0.9) +
+#       geom_hline(yintercept = 0, color = "black", size = 1.1) +  # Stronger baseline
+#       
+#       facet_wrap(~ Affected_Var, scales = "free_y") +
+#       theme_minimal(base_family = "serif") +  # Professional font
+#       
+#       theme(
+#         plot.title = element_text(size = 16, face = "bold"),  # Larger title
+#         axis.title.x = element_text(size = 14),  # Larger axis labels
+#         axis.title.y = element_text(size = 14),
+#         axis.text = element_text(size = 12),  # Bigger tick labels
+#         panel.grid.major = element_line(color = "gray85"),  # Softer grid lines
+#         panel.grid.minor = element_blank(),  # Hide minor grid lines
+#         strip.text = element_text(size = 14, face = "bold")  # Improve facet labels
+#       ) +
+#       
+#       labs(title = paste("Impulse Response for Shock:", shock),
+#            x = "Time",
+#            y = "Response") +
+#       
+#       scale_y_continuous(expand = expansion(mult = c(0, 0.05)))  # Avoid clipping near zero
+#   
+#     print(p)  # Render each plot separately
+#   }
+# 
+# 
+# }
 
 ```
 
@@ -826,14 +1062,20 @@ plot_irf(irf_long1)
 
 ```{r, SVAR 2}
 
-normality.test(reduced_VAR2)
+plot_irf_with_ci(irf_result_b_data)
+plot_irf_with_ci(irf_result_b_data2)
 
-irf_long2 <- process_irf(irf_result2)
 
-
-plot_irf(irf_long2)
-
+# normality.test(reduced_VAR2)
+# 
+# irf_long2 <- process_irf(irf_result2)
+# 
+# 
+# plot_irf(irf_long2)
+# 
+# roots(reduced_VAR2)
 ```
+
 
 
 
@@ -841,6 +1083,15 @@ Ramey (2019) define fiscal multipliers: "change in output due to a change in spe
 Gechert (2017)
 
 # Robustness
+
+## Stability
+
+## Normality
+ 
+## Lag length
+
+## Identification
+
 
 # Discussion/ Policy Implications
 
