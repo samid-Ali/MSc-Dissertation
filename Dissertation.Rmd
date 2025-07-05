@@ -663,101 +663,6 @@ Killian and Lutkepohl (2017) highlight that identification of the structural par
 
 ## Unrestricted Model
 
-### SVAR Recode
-
-```{r structural_VAR_recode}
-
-
-
-# Amat <- matrix(c(1, 0, 0, 0, 0, 0,   # Recursive ordering
-#                  NA, 1, 0, 0, 0, 0,  
-#                  NA, NA, 1, 0, 0, 0, 
-#                  NA, NA, NA, 1, 0, 0,  
-#                  NA, NA, NA, NA, 1, 0,
-#                  NA, NA, NA, NA, NA, 1), 
-#                nrow = 6, byrow = TRUE)
-
-
-# Variables are already ordered per the recursive identification strategy. Thus create a lower triangular matrix 
-k <- ncol(clean_data[,-c(1,2)])
-Amat <- diag(1, k)
-Amat[lower.tri(Amat)] <- NA
-print(Amat)
-
-
-
-
-svar_model <- SVAR(reduced_VAR, Amat = Amat, estmethod = "direct")
-svar_model2 <- SVAR(reduced_VAR2, Amat = Amat, estmethod = "direct")
-# ?SVAR()
-
-structural_shocks <- residuals(svar_model)
-
-
-
-cov_matrix <- summary(reduced_VAR)$covres
-chol(cov_matrix)
-
-
-
-library(vars)
-
-# Step 1: Extract covariance matrix from the reduced-form VAR
-cov_matrix <- summary(reduced_VAR)$covres
-
-# Step 2: Compute Cholesky decomposition
-chol_matrix <- t(chol(cov_matrix))
-
-# Step 3: Apply zero restrictions directly
-# Example: Set specific elements to zero manually (adjust indices based on theory)
-B_tilde <- chol_matrix
-# B_tilde[2,1] <- 0  # Example: Restrict second variable's response to first shock
-# B_tilde[3,1] <- 0  # Restrict third variable's response to first shock
-
-# Step 4: Verify imposed restrictions
-# print(B_tilde)
-
-# Normalize B_tilde so the diagonal elements are 1
-normalize_matrix <- function(B) {
-  diag_values <- diag(B)  # Extract diagonal elements
-  B_normalized <- B / diag_values  # Divide each column by its diagonal element
-  return(B_normalized)
-}
-
-# Apply normalization
-B_tilde_normalized <- normalize_matrix(B_tilde)
-
-# Verify the transformation
-print(B_tilde_normalized)
-```
-
-#### IRFs recode
-
-```{r, IRF_Recode}
-
-
-
-# # Function to compute IRFs
-# compute_irf <- function(A, B, horizon) {
-#   k <- ncol(A)
-#   IRF <- array(0, dim = c(k, k, horizon + 1))
-#   IRF[, , 1] <- B  # Impact at time 0
-# 
-#   for (h in 2:(horizon + 1)) {
-#     IRF[, , h] <- A %*% IRF[, , h - 1]
-#   }
-#   
-#   return(IRF)
-# }
-# 
-# # Example execution:
-# A_matrix <- matrix(c(0.5, 0.2, 0.1, 0.3, 0.7, -0.2, -0.1, 0.4, 0.6), 3, 3)  # Replace with actual VAR coefficients
-# IRFs <- compute_irf(A_matrix, B_tilde_normalized, horizon = 10)
-# print(IRFs)
-
-
-```
-
 
 ### SVAR functions
 ```{r structural_VAR}
@@ -819,10 +724,16 @@ ca.jo_result <- ca.jo(clean_data2[,-c(1,2)], type = "trace", ecdet = "trend", K 
 summary(ca.jo_result)
 # ca.jo()
 
-vecm <- urca::cajools(ca.jo_result)
+# vecm <- urca::cajools(ca.jo_result)
 
 plotres(ca.jo_result)
 
+# vecm <- cajorls(ca.jo_result, r = 1)
+johansen_test <- cajorls(ca.jo_result, r = 1)
+vec2var_model <- vec2var(johansen_test, r = 1)
+svar_model <- SVAR(vec2var_model, estmethod = "direct", Amat = Amat)
+irf_result <- irf(svar_model, n.ahead = 10, boot = TRUE, ci = 0.68)
+plot(irf_result)
 
 # arch.test(reduced_VAR)
 # serial.test(reduced_VAR)
