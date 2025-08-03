@@ -35,7 +35,7 @@ library(stargazer)
 library(clipr)
 library(tibble)
 library(lubridate)
-# install.packages("seasonal")
+library(boot)
 library(seasonal)
 
 
@@ -55,6 +55,18 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 \newpage
 
 # Abstract
+
+\newpage
+
+# Table of Figures
+\listoffigures
+
+
+
+# Table of Tables
+\listoftables
+
+\newpage
 
 # Introduction
 
@@ -311,18 +323,18 @@ dplyr::select(Year, CDID, dif_log_expenditure, dif_interest_rate, dif_log_GDP, d
 
 In this section we outline the empirical methodology, as well as the data employed by this research. We use quarterly data from 1987:1 to 2023:3, modelling this using a six-dimensional VAR at with a lag length of 4. This lag order follows Blanchard and Perroti (2002), and suggests that past values of the endogenous variables continue to have an effect for up to a year. While statistical procedures were not used to determine this lag order, it has an econometric rationale: Kilian and Lutkepohl (2016) note that due to poor finite sample properties of lag selection techniques, it may be appropriate to impose a fixed lag length. Particularly when concerned with impulse response analysis, the risks of underestimating the lag length exceed those of using a larger order which may better reflect the dynamics of the data at the cost of inefficient estimates. Given these considerations, and the degrees of freedom restrictions imposed by the sample size, the lag order of 4 was determined.  
 
-Regarding the endogenous variables considered, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional VAR model consisting of GDP, government expenditure, and government revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Therefore, we augment the model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, price levels, and trade respectively. Consequently, the impulse response functions reported later are better interpreted as the response of GDP to the fiscal variables cetris paribus. 
+Regarding the endogenous variables included in the VAR model, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional VAR model consisting of GDP, government expenditure, and government revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Therefore, we augment the model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, price levels, and trade respectively. Consequently, the impulse response functions reported later are better interpreted as the response of GDP to the fiscal variables cetris paribus. 
 
-Consistent with Fernández (2006), all variables are log-transformed prior to estimation, except for the short-term interest rate, which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. Capek and Cuaresma (2020) highlight that data used to estimate fiscal multipliers is typically seasonally adjusted. Therefore (with the exception of GDP which was sourced after seasonal adjustment) variables have been seasonally adjusted using the X-13ARIMA-SEATS method. This reduces the noise in the data, allowing for more meaningful results. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. 
-*Cf Blanchard and Perotti (2002).*
+Consistent with Fernández (2006), all variables are log-transformed prior to estimation, except for the short-term interest rate, which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. This allows for an intuitive interpretation of the results in terms of percentage changes. Capek and Cuaresma (2020) highlight that data used to estimate fiscal multipliers is typically seasonally adjusted. Therefore (with the exception of GDP which was sourced after seasonal adjustment) variables have been seasonally adjusted using the X-13ARIMA-SEATS method. This reduces the noise in the data, allowing for more meaningful results. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. These definitions follow those used elsewhere in the literature, allowing for more accurate comparisons of fiscal multipliers, whilst mitigating potential differences due to methodological decisions (Gechert?).    
 
+- *Need to describe the data features and definitions*  
 
+The data series across the sample period are plotted in the data appendix. A key feature of these series is the apparent presence of a deterministic linear trend driving the series upwards (with the exception of the exchange rate and mean short run rate). This suggests that the VAR model may need treatment in order to impose stationarity. ...  
 
+<!-- Testing for deterministic trends? -->
 
-
-
-
-
+- *Cf Blanchard and Perotti (2002).*  
+ 
 - debt sustainability (inflation/ interest rate changing real cost of debt despite no change in deficit ceteris paribus)
 
 
@@ -372,8 +384,8 @@ reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
 
 # Summary reports the roots of the polynomial. 
 
+
 ```
-Note: VAR analysis requires stability of the system. 
 
 
 
@@ -390,48 +402,45 @@ Note: VAR analysis requires stability of the system.
 The reduced-form VAR model can be written as:
 
 \[
-X_t = \mu_0 + \mu_1 t +  A_1 X_{t-1} + A_2 X_{t-2} + \cdots + X_p Y_{t-p} + \epsilon_t
+X_t = \mu+  A_1 X_{t-1} + \cdots + X_p Y_{t-p} + \epsilon_t
 \tag{1}
 \]
 
-where we have: \[
-X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ \tau_t \\ P_t \end{pmatrix}
+where: \[
+X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ ERI_t \\ \tau_t \\ P_t \end{pmatrix}
 \]
 
+Here the vector \(X_t \) defines the endogenous variables. 
 
-The terms \( \mu_0 + \mu_1 t \) in equation 1 capture the deterministic component of the model, these will be further refined after we highlight the features of the data. 
+The term \( \mu \) in equation 1 capture the deterministic component of the model. As previously mentioned, the data suggests a linear trend. 
 
-The VAR model above assumes that the data generating process includes a deterministic linear time trend and constant intercept. This is included to mitigate for potential spurious regression between trending factors in the endogenous variables and to account for their nonzero mean.
-
-
-Killian and Lutkepohl (2016) show that the VAR model can be reparameterised as a Vector Error Correction Model (VECM) by subtracting the lagged variables and rearranging terms. When correctly specified, this representation can yield efficiency gains: including the error correction term may allow the model to capture important dynamics in the long run relationships between variables.  
-Therefore we proceed with tests of cointegration to determine the empirical specification employed by this research.
+Kilian and Lutkepohl (2016) show that the VAR model can be reparameterised as a Vector Error Correction Model (VECM) by subtracting the lagged variables and rearranging terms:  
 
 \[
 \Delta X_t = \Pi X_{t-1} + \sum_{i=1}^{k-1} \Gamma_i \Delta X_{t-i} + \mu + \varepsilon_t
 \tag{2}
 \]
 
-Hubrich, Lutkepogl, and Saikkonen (2001) provide a review of cointegration tests. Conducting a monte carlo simulation, they find that the LR type tests are among the best performing in practice, with other classes of tests having poor power or size.
-Gonzalo and Lee (1998) potential pitfalls of the Johjanesen LR test for cointegration  
+When correctly specified, this representation can yield efficiency gains: including the error correction term may allow the model to capture important dynamics in the long run relationships between variables. We therefore proceed by testing for cointegration relationships in the data. 
+
+Hubrich, Lutkepogl, and Saikkonen (2001) provide a review of cointegration tests. Conducting a monte carlo simulation, they find that the Likelihood Ratio type tests are among the best performing in practice, with other classes of tests having worse power or size. Hubrich, Lutkepohl, and Saikkonen (1998) highlight that improperly specified deterministic terms invalidate cointegration testing, with reduced power. Martin, Hurn, and Harris (2013) highlight that a constant deterministic component implies a linear trend in the VAR, thus we account for this in our tests for cointegration. 
+
+Gonzalo and Lee (1998) analyse the robustness of test for cointegration, finding cases where the Johansen LR test for cointegration detects spurious cointegration. While they find that the Engle and Granger test is typically more robust, they propose that both tests are used. 
 
 
-Hubrich, Lutkepohl, and Saikkonen (1998) highlight that improperly specified deterministic terms invalidate cointegration testing, with reduced power. 
 
+*Watson (2000): specification of deterministic components affects the power of tests*
 
-*In the cointegration test we assume a constant deterministic term. The literature highlights the importance of ensuring any deterministic terms are properly specified for the validity of cointegration tests. *
-
-We perform Johansen's maximum eigenvalue test for cointegration, which compares the null hypothesis of rank r, to the alternative of rank r+1. As can be seen from the table, there is insufficient evidence to reject the null hypothesis of no cointegrating relations at the 5% levels. Consequently, the VECM reduces to a VAR in the differences of variables (Kilian and Lutkepohl, 2016). For robustness, we also perform Johansen's trace test, which has as the alternative hypothesis that the rank is greater than assumed under the null hypothesis. Under this test we reject at the 5% level that there are no cointegrating relations, and at the same level fail to reject that there is a single cointegrating relation. 
+We perform Johansen's maximum eigenvalue test for cointegration, which compares the null hypothesis of rank r, to the alternative of rank r+1. We find insufficient evidence to reject the null hypothesis of no cointegrating relations at the 5% levels. Consequently, the VECM reduces to a VAR in the differences of variables (Kilian and Lutkepohl, 2016). For robustness, we also perform Johansen's trace test, which has as the alternative hypothesis that the rank is greater than assumed under the null hypothesis. Under this test we reject at the 5% level that there are no cointegrating relations, and at the same level fail to reject that there is a single cointegrating relation. 
 
 Cheung and Lai (1993), using a Monte Carlo simulation, find that there is finite sample bias in Johansen's LR test, with the tests being biased towards finding cointegration at a rate greater than implied by asymptotic theory. Additionally, Lutkepohl, Saikkonen, and Trenkler (2001) find that in small samples, while trace tests had size distortions, they had power advantages relative to the maximum eigenvalue test. This suggests that there may exist a statistical basis to support the hypothesis of no cointegrating relationship.  
 
-Furthermore, Kilian and Lutkepohl (2016) highlight the asymmetric consequences of imposing a unit root. When the underlying data generating process possesses a unit root, the reduced form model can benefit from increased efficiency in estimation by imposing a unit root. Failing to impose a unit root in such a case would only reduce the precision of the Least Squares estimates.  In contrast, when the underlying process does not follow a unit root, incorrectly imposing one would result in over-differencing - resulting in an inconsistent estimator. Given the parsimony of a VAR in differences and theoretical support for the maximal eigenvalue test
-we proceed in this analysis by assuming there are no cointegrating relationships. 
+Furthermore, Kilian and Lutkepohl (2016) highlight the asymmetric consequences of imposing a unit root. When the underlying data generating process possesses a unit root, the reduced form model can benefit from increased efficiency in estimation by imposing a unit root. Failing to impose a unit root in such a case would only reduce the precision of the Least Squares estimates.  In contrast, when the underlying process does not follow a unit root, incorrectly imposing one would result in over-differencing - resulting in an inconsistent estimator. Given the parsimony of a VAR in differences and theoretical support for the maximal eigenvalue test. Therefore, we proceed in this analysis by imposing no cointegrating relationships, thus we estimate our model as a VAR in differences with 3 lags (as the lag order is reduced by differencing). 
 
 
-*The lag order for the VAR in differences is p-1, therefore we proceed with a lag order of 3*
+**One such relationship that could be argued a priori is a cointegrating relationship between government revenue and spending. Intuitively, this would mean that while there can be shocks will lead the variables back to their long run equilibrium relationship. This could be interpreted as stationarity of the government deficit**
 
-*One such relationship that could be argued a priori is a cointegrating relationship between government revenue and spending. Intuitively, this would mean that while there can be shocks will lead the variables back to their long run equilibrium relationship. This could be interpreted as stationarity of the government deficit*
+**For robustness we also perform Phillips-Ouliaris' (1990) residual based test for cointegration. Using this test we again fail to reject the null hypothesis of no cointegration, suggesting that a VECM is not an appropriate representation for our data.** 
 
 
  
@@ -439,28 +448,23 @@ we proceed in this analysis by assuming there are no cointegrating relationships
 *Add code results to appendix?*
 
 
-NB on unit root tests: failing to reject H0 does not mean we accept H0!!!!
+NB on unit root tests: failing to reject H0 does not mean we accept H0!!!! **(Lutkepohl)**
 
-Cheung and Lai (1993) perform a Monte Carlo analysis to evaluate the finite sample properties of Johansen's LR tests. They find that while the trace and maximum eigenvalue tests perform similarly, they are biased 
 
-For robustness we also consider the VAR in levels.
 
-For robustness we also perform Phillips-Ouliaris' (1990) residual based test for cointegration. Using this test we again fail to reject the null hypothesis of no cointegration, suggesting that a VECM is not an appropriate representation for our data. 
 
 
 
 # Identification
 
+
+Thus far we have only defined the reduced form model. The residuals in this case are not meaningful as they are linearly dependent, instead, the interest of this research lies in the structural model. In order to recover the structural responses necessary to interpret the fiscal multipliers we must impose additional restrictions. This is because ... therefore in order to identify the structural parameters we must impose XXX restrictions. The literature review has highlighted various approaches to identifying fiscal VARs, including recursive methods, sign restrictions, and the narrative method. For this analysis we rely on a cholensky decomposition, using recursive short run restrictions. 
+
+
 Explaining distinction between the reduced form and structural model. Interested in the structural shocks which we will recover as follows.
 
 
-Let \( X_t \) be the vector of variables:
-
-\[ X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ T_t \\ P_t \end{pmatrix} \]
-
-The reduced-form VAR model can be written as:
-
-\[ X_t = A_1 X_{t-1} + A_2 X_{t-2} + \cdots + A_p X_{t-p} + \epsilon_t \]
+The reduced form residuals ( \( \epsilon_t\)) are not meaningful, are interest lies with the stuctural errors ...
 
 where \( \epsilon_t \) is the vector of reduced-form residuals. To recover the structural shocks \( u_t \), we assume:
 
@@ -510,15 +514,13 @@ Killian and Lutkepohl (2017) highlight that identification of the structural par
 
 # Results
 
-
-## Unrestricted Model
-
+Given that we have performed cointegration tests, it would suggest that the appropriate model has been chosen, and thus we would expect the stability of the VAR model. This is confirmed by inspecting the eigenvalues of the VAR model, the greatest of which is `r round(max(roots(reduced_VAR)),2)` suggesting that we do not have issues of explosive roots. We therefore proceed by presenting the results of the SVAR analyis, focusing on Forecast Error Variance Decompositions (FEVDs) and Impulse Response Funcitions (IRFs)
 
 
 
 
 
-### FEVDs
+## FEVDs
 ```{r structural_VAR}
 
 # Define the 5 dimensional lower triangular matrix, A
@@ -559,7 +561,8 @@ irf_result <- irf(svar_model, n.ahead = 10, ci = 0.68, boot = 5000, cumulative =
 
 FEVD_result <- fevd(svar_model, n.ahead = 10)  # Forecast horizons
 # FEVD_result2 <- fevd(svar_model2, n.ahead = 10)  # Forecast horizons
-plot(FEVD_result)
+
+# plot(FEVD_result)
 # plot(FEVD_result2)
 
 
@@ -575,9 +578,6 @@ We report the FEVDs, while  `r paste0(round(FEVD_result$dif_log_GDP[1,3] * 100, 
 
 ## IRFs
 
-A standard deviation shock to the difference in log expenditure results in a `r round(irf_result$irf$dif_log_expenditure[1, 3],2)` standard deviation decrease in the difference in logarithms of GDP. Notably, the sign of the IRF at index 0 is negative, suggesting that an acceleration in expenditure has a crowding out effect. 
-
-
 ```{r IRFs_Table}
 
 
@@ -588,36 +588,92 @@ A standard deviation shock to the difference in log expenditure results in a `r 
 exp_irf <- round(irf_result$irf$dif_log_expenditure[, 3],2)
 rev_irf <- round(irf_result$irf$dif_log_revenue[, 3],2)
 
-
-
-
-# Create horizon index from 0
-horizon <- 0:(length(exp_irf) - 1)
-
-# Build data frame
-output_table <- data.frame(
-  Horizon = rep(horizon, 2),
-  Variable = rep(c("dif_log_expenditure", "dif_log_revenue"), each = length(horizon)),
-  IRF = round(c(exp_irf, rev_irf), 5)
+exp_irf_df <- as.data.frame(
+  cbind(
+    seq(0,10),
+    irf_result$irf$dif_log_expenditure[, 3],
+    irf_result$Lower$dif_log_expenditure[, 3],
+    irf_result$Upper$dif_log_expenditure[, 3]
+  )
 )
 
-# Display table
-kable(output_table, align = "lrrr", caption = "Cumulative IRF by Horizon and Variable")
+colnames(exp_irf_df) <- c("Quarter","Expenditure", "LB", "UB")
+
+rev_irf_df <- as.data.frame(
+  cbind(
+    seq(0,10),
+    irf_result$irf$dif_log_revenue[, 3],
+    irf_result$Lower$dif_log_revenue[, 3],
+    irf_result$Upper$dif_log_revenue[, 3]
+  )
+)
+
+colnames(rev_irf_df) <- c("Quarter","Expenditure", "LB", "UB")
+
+
+
+
+# Define a custom theme for consistency
+custom_theme <- theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+
+
+
+
+
+```
+
+
+```{r Restricted-Model-Expenditure-IRF, fig.cap="Impulse Response Function of GDP Following a Shock to Expenditure ", fig.align='center'}
+# Plot for Expenditure IRF
+ggplot(exp_irf_df, aes(x = Quarter)) +
+  geom_ribbon(aes(ymin = LB, ymax = UB), fill = "lightblue", alpha = 0.4) +
+  geom_line(aes(y = Expenditure), color = "blue", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+  labs(
+    title = "Impulse Response of Government Expenditure",
+    x = "Quarter",
+    y = "Log-Difference Response"
+  ) +
+  custom_theme
+
+```
+
+
+```{r Restricted-Model-Revenue-IRF, fig.cap="Impulse Response Function of GDP Following a Shock to Revenue ", fig.align='center'}
+# Plot for Revenue IRF
+ggplot(rev_irf_df, aes(x = Quarter)) +
+  geom_ribbon(aes(ymin = LB, ymax = UB), fill = "lightblue", alpha = 0.4) +
+  geom_line(aes(y = Expenditure), color = "blue", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+  labs(
+    title = "Impulse Response of Government Revenue",
+    x = "Period",
+    y = "Log-Difference Response"
+  ) +
+  custom_theme
 ```
 
 
 We report the cumulated structural impulse response functions up to a horizon of 10 quarters and include bands for the 68% confidence interval, approximately corresponding to a one standard deviation interval. As nonlinear functions of the parameters, 
-The confidence intervals are obtained 
+The confidence intervals are obtained using a bootstrap approach. Kilian and Lutkepohl highlight the poor performance of asymptotic formulae (delta method) for impulse response functions. The T 
+The IRF function in R computes Efron's (YYYY) percentile interval for impulse response functions.
+*Explain Efron's PI*
+It should be noted since it is constructed using a bootstrap distribution, this interval is not necessarily symmetric about the point estimate. Additionally, this method may be susceptible to bias in VAR estimates ... Augmentations have been proposed to correct for this bias. 
+
+Here we focus on the response of GDP to the fiscal variables, the appendix includes comprehensive details of the IRFs for each of the variables.
 
 
 
+A standard deviation shock to the difference in log expenditure results in a `r round(irf_result$irf$dif_log_expenditure[1, 3],2)` standard deviation decrease in the difference in logarithms of GDP. Notably, the sign of the IRF at index 0 is negative, suggesting that an acceleration in expenditure has a crowding out effect. 
 
-```{r Residuals}
+- explain the bootstrap procedure/ why this may not be symmetric/ limitations
 
-
-
-FEVD_result
-```
 
 ```{r, IRFs1}
 
@@ -630,40 +686,31 @@ FEVD_result
 
 ```
 
-```{r, FEVD}
-
-normality.test(reduced_VAR)
+# Robustness
 
 
+```{r, Restricted Model Diagnostics}
+
+# normality.test(reduced_VAR)
+
+serial_test <- serial.test(reduced_VAR, lags.pt = 16, type = "PT.asymptotic")
+
+
+# serial_test # Don't reject H0 of no autocorrelation
+
+normality_test <- normality.test(reduced_VAR)
+# normality_test
+
+
+hetero_test <- arch.test(reduced_VAR, lags.multi = 5)
+# hetero_test
 
 ```
 
 ## Chow test for Structural Breaks
 
 
-Interested in assessing differences in the fiscal multipliers pre / post GFC
-
-
-
-
-### Chow Test 
-
-Chow test for parameter stability - Lutkepohl and Candelon (2000) highlight that when the sample size is low relative to the nuber of parameters, the Chow test may have distorted size. Given that we are considering a 6-dimensional VAR in this analysis, with a sample period of less than 40 yeas at a quarterly frequency, this issue is likely present in this analysis. Therefore we do not perform a traditional Chow test. The paper proposes as an alternative a bootstrap version of the test which they show to have more desirable finite sample properties.
-
-recursive residual-based bootstrap
-
-The bootstrap test is implemented as follows:  
-1) Obtain the demeaned residuals  
-2) Generate bootsrap residuals by randomly drawing from the centered residuals with replacement. 
-
-Using sample-split test (asymptotic values) for chow: https://www.econstor.eu/bitstream/10419/62173/1/723877181.pdf
-
 ```{r, Lutkepohl and Candelon (2000) Residual-based Bootstrap Chow Test}
-
-# roots(reduced_VAR)
-
-library(vars)
-library(boot)
 
 # --- Step 1: Define Restricted Model ---
 # reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
@@ -749,7 +796,7 @@ for (r in 1:Rep) {
   }
 
   boot_stats[r] <- if (anyNA(Y_boot)) NA else chow_stat(Y_boot, T_break, p)
-  if (r %% 50 == 0) cat("Completed iteration", r, "\n")
+  # if (r %% 50 == 0) cat("Completed iteration", r, "\n")
 }
 
 boot_stats <- na.omit(boot_stats)
@@ -766,7 +813,7 @@ if (length(boot_stats) > 0) {
     Chow_Statistic = boot_stats
   )
 
-  ggplot(boot_df, aes(x = Iteration, y = Chow_Statistic)) +
+ chow_plot <<-  ggplot(boot_df, aes(x = Iteration, y = Chow_Statistic)) +
     geom_line(color = "dodgerblue", alpha = 0.7) +
     geom_hline(yintercept = actual_stat, color = "red", linetype = "dashed", linewidth = 1) +
     geom_point(aes(x = 0, y = actual_stat), color = "red", size = 3) +
@@ -781,24 +828,35 @@ if (length(boot_stats) > 0) {
   warning("No valid bootstrap statistics available to plot.")
 }
 
-print(actual_stat)
-print(p_val)
-
-print(p_value_asymptotic)
-
-```
-
-
-
-### Pre GFC Shocks
-
-```{r, SVAR 1}
-
-# plot_irf_with_ci(irf_result_a_data)
-# plot_irf_with_ci(irf_result_a_data2)
+# print(actual_stat)
+# print(p_val)
+# print(p_value_asymptotic)
 
 
 ```
+
+Lutkepohl and Kilian (2016) highlight paramater instability as a major concern for SVAR analysis. Following the Global Financial Crisis (GFC) there were major changes to government finances (source?), which may have lead to changes in the structural parameters. This can also be seen in the plots in the data appendix, where the trends appear to change in 2008. We thus consider as a test for robustness whether the parameters have remained stable across the period, using 2008 as a potential breakpoint. 
+
+Using an asymptotic likelihood based Chow test we find evidence to support this alternative hypothesis of parameter instability. Nevertheless, Lutkepohl and Candelon (2000) highlight that when the sample size is low relative to the nuber of parameters, the Chow test may have distorted size. Given that we are considering a 6-dimensional VAR in this analysis, with a sample period of less than 40 yeas at a quarterly frequency, this issue is likely present in this analysis. Therefore we also consider a bootstrap version of the Chow statistic the authors show to have more desirable finite sample properties.
+
+Following Lutkepohl and Candelon (2000), we implement our recursive residual-based boostrap for the Chow test as follows:
+\begin{enumerate}
+  \item Estimate the restricted VAR model (pooling both periods around the GFC)
+  \item Obtain the demeaned residuals from the restricted model.  
+  \item Generate bootstrap residuals by randomly drawing from the centered residuals with replacement.
+  \item For each iteration, estimate the restricted and unrestricted models (where we allow the parameters to vary across the samples).
+  \item Compute the Chow statistic (Here we use the same likelihood based Chow test as with our asymptotic testing).
+\end{enumerate}
+
+Through this process we can derive the empirical distribution of the bootstrap time series.
+*Chow statistic under the null hypothesis of parameter stability*. We then compute the pseudo p-value as the percentage of times the bootstrap statistic exceeds the test statistic. Using `r Rep`` replications, we find a p-value of 0, this can be further seen in figure 3 where the test statistic exceeds even the greatest boostrap statistic by a factor of 2. This supports the previous asymptotic test of parameter instability. We therefore estimate the SVAR on the post-GFC sample to determine whether there are differences in the estimated fiscal multipliers in the most recent period. 
+
+
+```{r chow-plot, fig.cap="Bootstrap Chow Test Results", fig.align='center'}
+chow_plot+ 
+  custom_theme
+```
+
 
 ### Post GFC Shocks
 
@@ -818,8 +876,8 @@ svar_model_post_gfc <- SVAR(reduced_VAR_post_GFC, Amat = Amat, estmethod = "dire
 
 irf_result_post_gfc <- irf(svar_model_post_gfc, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
 
-round(irf_result_post_gfc$irf$dif_log_expenditure[1, 3],2)
-round(irf_result_post_gfc$irf$dif_log_expenditure[1, 3],2)
+# round(irf_result_post_gfc$irf$dif_log_expenditure[1, 3],2)
+# round(irf_result_post_gfc$irf$dif_log_expenditure[1, 3],2)
 
 # Uncomment line below
 # plot_irf_with_ci(irf_result_b_data)
@@ -853,16 +911,6 @@ irf_combined <- cbind(
   PostGFC_Revenue = rev_irf_post_GFC
 )
 
-# kable(irf_combined, digits = 4, caption = "Impulse Response Comparison: Total Period vs Post-GFC") %>%
-#   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) %>%
-#   add_header_above(c(" " = 1, "Total Period" = 2, "Post-GFC" = 2))
-
-
-kable(irf_combined, align = "lrrr", caption = "Cumulative IRFs by Horizon and Variable")
-
-
-
-
 # Prepare data for Revenue plot
 df_rev <- data.frame(
   Period = 0:(length(rev_irf) - 1),
@@ -870,17 +918,6 @@ df_rev <- data.frame(
   PostGFC = rev_irf_post_GFC
 ) %>%
   pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
-
-# Plot Revenue IRFs
-ggplot(df_rev, aes(x = Period, y = IRF, color = Sample)) +
-  geom_line(size = 1.2) +
-  labs(
-    title = "IRF: Revenue Response to Expenditure Shock",
-    x = "Periods Ahead",
-    y = "Impulse Response"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5))
 
 
 # Prepare data for Expenditure plot
@@ -891,6 +928,24 @@ df_exp <- data.frame(
 ) %>%
   pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
 
+
+```
+
+```{r IRF-comp-Revenue, fig.cap="GDP Responses to Government Revenue Compared", fig.align='center'}
+# Plot Revenue IRFs
+ggplot(df_rev, aes(x = Period, y = IRF, color = Sample)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "IRF: Revenue Response to Expenditure Shock",
+    x = "Periods Ahead",
+    y = "Impulse Response"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  custom_theme
+```
+
+```{r IRF-comp-Expenditure, fig.cap="GDP Responses to Government Compared", fig.align='center'}
 # Plot Expenditure IRFs
 ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
   geom_line(size = 1.2) +
@@ -900,29 +955,9 @@ ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
     y = "Impulse Response"
   ) +
   theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5))
-# # Extract IRFs
-# exp_irf_post_GFC <- round(irf_result_post_gfc$irf$dif_log_expenditure[, 3],2)
-# rev_irf_post_GFC <- round(irf_result_post_gfc$irf$dif_log_revenue[, 3],2)
-# 
-# 
-# # Create horizon index from 0
-# # horizon <- 0:(length(exp_irf_post_GFC) - 1)
-# 
-# # Build data frame
-# output_table_post_GFC <- data.frame(
-#   Horizon = rep(horizon, 2),
-#   Variable = rep(c("dif_log_expenditure", "dif_log_revenue"), each = length(horizon)),
-#   IRF = round(c(exp_irf_post_GFC, rev_irf_post_GFC), 5)
-# )
-# 
-# # Display table
-# kable(output_table, align = "lrrr", caption = "Cumulative IRF by Horizon and Variable")
-# 
-# kable(output_table_post_GFC, align = "lrrr", caption = "Post Covid: Cumulative IRF by Horizon and Variable ")
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  custom_theme
 ```
-
-
 
 ### Post GFC Diagnostics
 
@@ -946,7 +981,6 @@ ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
 Ramey (2019) define fiscal multipliers: "change in output due to a change in spending or taxes", and highlight the risk of ignoring fiscal foresight. 
 Gechert (2017)
 
-# Robustness
 
 ## Stability
 
@@ -954,10 +988,16 @@ Gechert (2017)
  
 ## Lag length
 
+consider reduced lag length (improved efficiency/ parsimony)
+
 ## Identification
 
 
 # Discussion/ Policy Implications
+
+This analysis has 
+
+cf with research and theory
 
 ## Limitations
 - potential heterogeneity within expedniture/ revenue
@@ -966,12 +1006,19 @@ Gechert (2017)
 
 # Conclusion
 
+Summary of literature, this research's results, contributions, and future implications.
+
+
 # Bibliography
 
 Cheung, Y.W. and Lai, K.S., 1993. FINITE-SAMPLE SIZES OF JOHANSEN'S LIKELIHOOD RATIC) TESTS FOR. Oxford Bulletin of Economics and statistics, 55(3), p.1025.
 
+Lüutkepohl and Candelon (2000) https://www.econstor.eu/bitstream/10419/62173/1/723877181.pdf
+
 Lüutkepohl, H., Saikkonen, P. and Trenkler, C., 2001. Maximum eigenvalue versus trace tests for the cointegrating rank of a VAR process. The Econometrics Journal, 4(2), pp.287-310.
 
+
+Martin, V., Hurn, S. and Harris, D., 2013. Econometric modelling with time series: specification, estimation and testing. Cambridge University Press.
 
 \printbibliography
 
@@ -1271,6 +1318,16 @@ plot_irf_with_ci(irf_result)
 # plot_irf_with_ci(irf_result2)
 ```
 
+```{r FEVD Output}
+
+plot(FEVD_result)
+
+```
+
+```{r FEVD Table Output}
+
+FEVD_result
+```
 ## FEVDs post GFC:
 ```{r Chow tmp}
 
