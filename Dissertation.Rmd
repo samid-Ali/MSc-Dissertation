@@ -54,25 +54,35 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 \newpage
 
-# Abstract
+<!-- \frontmatter -->
+
+
+
+
+## Abstract
 
 \newpage
 
-# Table of Figures
+## Table of Figures
 \listoffigures
 
 
 
-# Table of Tables
+## Table of Tables
 \listoftables
 
 \newpage
 
+<!-- \mainmatter -->
+
+
 # Introduction
 
 - motivate
+- research gap / contribution
 - summarise/ outline structure
 
+This paper proceeds as follows, Section 2 provides a review of the related literature, focusing on the costs of high indebtedness and evidence on the effects of fiscal consolidation. We also provide a synthesis of the methods used to estimate fiscal multipliers, highlighting the use of Structural Vector Autoregressions (SVARs). This provides us with sufficient context and foundations to proceed with section 3  where we introduce the data and reduced form model. Here the Vector Error Correction Model (VECM) representation is considered as a generalisation of the VAR model which can yield efficiency gains when properly specified. We considered the merits of this representation and perform pre-testing of the specification. Following this, in Section 4 we introduce the identifying assumptions to allow us to recover the structural shocks. With our model now defined, Section 5 presents the results of this paper, focusing on the Impulse Response Function (IRF) and Forecast Error Variance Decomposition (FEVD). Overall, the IRFs of interest are statistically and practically significant; in Section 6 we consider robustness checks such as parameter stability and a lower lag lenght to see whether the results are sensitive to the specification. Finding that the result of low fiscal multipliers in the UK are robust to the specification, Section 7 proceeds with a discussion of policy implications. In Section 8 we then constextualise the results of this study and scope for future research, so that the results can be appropriately appreciated. Section 9 concludes.
 
 # Literature Review
 
@@ -101,6 +111,8 @@ Structural Vector Autoregressions (SVARs) have been prominent in the literature 
 Recursive measures to identfication have been employed by Fatas and Mihov (YYYY) and Fernandex (2008). Fernandez argues that
 Uhlig and Mountford (200Y) apply restrictions on the signs of the impulse response functions. 
 Caldara and Kamps (2008) reviews the literature on SVAR identification. Caldara and Kamps (2017) introduce a new approach for identification.
+
+Auerbach and Gorodnichenko (2012) explore state-dependent fiscal multipliers using regime-switching models. They find evidence of substantial differences in multipliers between recessionary and expansionary periods. 
 
 *Add DSGE lit for context*
 
@@ -324,11 +336,11 @@ dplyr::select(Year, CDID, dif_log_expenditure, dif_interest_rate, dif_log_GDP, d
 
 # Econometric Methodology
 
-In this section we outline the empirical methodology, as well as the data employed by this research. We use quarterly data from 1987:1 to 2023:3, modelling this using a six-dimensional VAR at with a lag length of 4. This lag order follows Blanchard and Perroti (2002), and suggests that past values of the endogenous variables continue to have an effect for up to a year. While statistical procedures were not used to determine this lag order, it has an econometric rationale: Kilian and Lutkepohl (2016) note that due to poor finite sample properties of lag selection techniques, it may be appropriate to impose a fixed lag length. Particularly when concerned with impulse response analysis, the risks of underestimating the lag length exceed those of using a larger order which may better reflect the dynamics of the data at the cost of inefficient estimates. Given these considerations, and the degrees of freedom restrictions imposed by the sample size, the lag order of 4 was determined.  
+This research employs a structural vector autoregressive (SVAR) approach to estimating fiscal multipliers. In this section we outline the empirical methodology, as well as the data. We use quarterly data from 1987:1 to 2023:3, modelling this using a six-dimensional VAR at with a lag length of 4. This lag order follows Blanchard and Perroti (2002), and suggests that past values of the endogenous variables continue to have an effect for up to a year. While statistical procedures were not used to determine this lag order, it has an econometric rationale: Kilian and Lutkepohl (2016) note that due to poor finite sample properties of lag selection techniques, it may be appropriate to impose a fixed lag length. Particularly when concerned with impulse response analysis, the risks of underestimating the lag length exceed those of using a larger order which may better reflect the dynamics of the data at the cost of inefficient estimates. Given these considerations, and the degrees of freedom restrictions imposed by the sample size, the lag order of 4 was determined.  
 
-Regarding the endogenous variables included in the VAR model, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional VAR model consisting of GDP, government expenditure, and government revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Therefore, we augment the model to include also a short term interest rate, the GDP deflator rate, and UK exports. These variables are included to account for the effects of monetary policy, price levels, and trade respectively. Consequently, the impulse response functions reported later are better interpreted as the response of GDP to the fiscal variables cetris paribus. 
+Regarding the endogenous variables included in the VAR model, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional VAR model consisting of GDP, government expenditure, and government revenue. While such a model could be used to estimate the effects of fiscal shocks, Gechert (2017) highlights the potential issues of omitted variable bias. Therefore, we augment the model to include also a short term interest rate, the GDP deflator rate, and the exchange rate index. These variables are included to account for the effects of monetary policy, price levels, and interactions with the rest of the world respectively. Consequently, the impulse response functions reported later are better interpreted as the response of GDP to the fiscal variables cetris paribus. 
 
-Consistent with Fernández (2006), all variables are log-transformed prior to estimation, except for the short-term interest rate, which enters the model in levels. Furthermore, the fiscal variables and GDP are used in real terms. This allows for an intuitive interpretation of the results in terms of percentage changes. Capek and Cuaresma (2020) highlight that data used to estimate fiscal multipliers is typically seasonally adjusted. Therefore (with the exception of GDP which was sourced after seasonal adjustment) variables have been seasonally adjusted using the X-13ARIMA-SEATS method. This reduces the noise in the data, allowing for more meaningful results. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. These definitions follow those used elsewhere in the literature, allowing for more accurate comparisons of fiscal multipliers, whilst mitigating potential differences due to methodological decisions (Gechert?).    
+Consistent with Fernández (2006), all variables are log-transformed prior to estimation, except for the short-term interest rate, which enters the model in levels. This will faciliate an intuitive interpretation of results. Furthermore, the fiscal variables and GDP are used in real terms. Following Capek and Cuaresma (2020), who highlight that data for estimating fiscal multipliers is typically seasonally adjusted, we applied the X-13 ARIMA-SEATS method to our variables. Gross Domestic Product (GDP) was an exception, as it was sourced after seasonal adjustment. This process reduces noise in the data, leading to more meaningful results. The fiscal variables are defined at the general level and follow the European System of Accounts (ESA, 2010). In particular, government expenditure represents the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. These definitions follow those used elsewhere in the literature, allowing for more accurate comparisons of fiscal multipliers, whilst mitigating potential differences due to methodological decisions (Gechert?).    
 
 - *Need to describe the data features and definitions*  
 
@@ -345,7 +357,7 @@ The data series across the sample period are plotted in the data appendix. A key
 
 
 
-## Model
+### Model
 
 ```{r Bivariate - Optimal Lags}
 
@@ -360,7 +372,7 @@ OptimalLag <-  VARselect(clean_data[,-c(1,2)], lag.max = 5, type = "const")
 OptimalLag2 <-  VARselect(clean_data2[,-c(1,2)], lag.max = 5, type = "const")
 
 # OptimalLag2$selection
-# # OptimalLag$criteria
+OptimalLag$criteria
 # OptimalLag$selection
 # OptimalLag$criteria
 # OptimalLag2$criteria
@@ -426,7 +438,10 @@ Kilian and Lutkepohl (2016) show that the VAR model can be reparameterised as a 
 
 When correctly specified, this representation can yield efficiency gains: including the error correction term may allow the model to capture important dynamics in the long run relationships between variables (Martin, Hurn, and Harris; 2013). We therefore perform tests for cointegration to determine the appropriate specification before estimating the model.
 
-Given the small sample sizes associated with macroeconomic time series, various Monte Carlo simulations have been performed to assess the finite sample properties of cointegration tests. Hubrich, Lutkepohl, and Saikkonen (2001) find that the Likelihood Ratio type tests are among the best performing, with other classes of tests having worse power or size. Therefore we focus on this class of cointegration tests.   Madadala and Kim (1998) provide a review of Johansen's cointegration tests, highlighting that sample sizes upwards of 100 may be needed to appeal to asymptotic results, tests can be misleading when too few variables are included, and insufficient lag lengths can lead to size distortions. Fortunately, these considerations do not appear to be a concern for this research. As previously discussed, due to concerns with underestimating the lag order when evaluating IRFs, we assume a lag order of 4, which we believe to be at least equal to the true lag parameter. ^[Later robustness checks suggest a lower lag order is compatible with the data, supporting this assertion.] Nevertheless, while the sample size in this study is sufficient to support the validity of asymptotic results as an approximation **(to the distribution of the test statistic in finite samples under the null hypothesis)**, Madadala and Kim highlight further complications of the test. We therefore consider this in detail before performing our cointegration test.   
+Given the small sample sizes associated with macroeconomic time series, various Monte Carlo simulations have been performed to assess the finite sample properties of cointegration tests. Hubrich, Lutkepohl, and Saikkonen (2001) find that the Likelihood Ratio type tests are among the best performing, with other classes of tests having worse power or size. Therefore we focus on this class of cointegration tests.   Madadala and Kim (1998) provide a review of Johansen's cointegration tests, highlighting that sample sizes upwards of 100 may be needed to appeal to asymptotic results, tests can be misleading when too few variables are included, and insufficient lag lengths can lead to size distortions. Fortunately, these considerations do not appear to be a concern for this research. As previously discussed, due to concerns with underestimating the lag order when evaluating IRFs, we assume a lag order of 4, which we believe to be at least equal to the true lag parameter. 
+^[While not relied on for determining the lag order, model selection criteria including the Akaike Information Criteria suggest that a lag as low as 2 may be appropriate for the levels VAR. Due to the considerations mentioned, we decide to use a fixed lag order of 4. The sensitivity of the final results to the lag order is considered as a robustness check.]
+
+Nevertheless, while the sample size in this study is sufficient to support the validity of asymptotic results as an approximation **(to the distribution of the test statistic in finite samples under the null hypothesis)**, Madadala and Kim highlight further complications of the test. We therefore consider this in detail before performing our cointegration test.   
 
 
 Lutkepohl, Saikkonen, and Trenkler (2001) find that in small samples, while trace tests had size distortions, they had power advantages relative to the maximum eigenvalue test. This suggests that there may be merit in considering both tests. Cheung and Lai (1993), using a Monte Carlo simulation, find that there is finite sample bias in Johansen's LR test, with the tests being biased towards finding cointegration at a rate greater than implied by asymptotic theory. They therefore apply scaling factors to the asymptotic critical values given by
@@ -1132,7 +1147,7 @@ suggests that there is scope to reduce the government deficit through more aggre
 
 cf with research and theory
 
-Lucas critique/ extrapolaing.
+Lucas critique/ extrapolating.
 
 
 ## Limitations
