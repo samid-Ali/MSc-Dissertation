@@ -160,7 +160,7 @@ filtered_df <- df %>%
  
 # fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data.csv", skip = 1)
 
-fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data Total.csv")
+fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data Central.csv")
 
 fiscal_proc <- fiscal_raw %>% 
   dplyr::select(Date_ID = Identifier, Revenue = Revenue, Expenditure = Expenditure) %>% 
@@ -521,13 +521,9 @@ Given that we have suggested the model to follow a deterministic linear trend, w
 
 **Watson (2000): specification of deterministic components affects the power of tests**
 
-We begin by performing Johansen's maximum eigenvalue test for cointegration, which compares the null hypothesis of rank r, to the alternative of rank r+1. We find insufficient evidence to reject the null hypothesis of no cointegrating relations at the 5% significance level. Consequently, the VECM reduces to a VAR in the differences of variables (Kilian and Lutkepohl, 2016). Per the previous review of cointegration tests, we also perform Johansen's trace test. This test has as the alternative hypothesis that the rank is greater than assumed under the null hypothesis. Using the asymptotic results, under this test we reject at the 5% level that there are no cointegrating relations, and at the same level fail to reject that there is a single cointegrating relation. After applying Cheung and Lai's (1993)  scaling factor to the critical values to account for finite sample bias in the test towards cointegration, we find that we no longer reject the null of no cointegration. ^[As mentioned by Cheung and Lai, the Johansen tests are biased towards spurious cointegration. Thus their scaling factor augments the critical values to account for this so that when compared with the test statistics, the desired sizes are retained. Given that the null hypothesis of no cointegration was already rejected for Johansen's maximum eigenvalue test, there was no use of manually scaling the critical values to account for the finite sample bias.] Thus, on the basis of both tests, the VAR in differences specification is selected. 
+We begin by performing Johansen's maximum eigenvalue test for cointegration, which compares the null hypothesis of rank r, to the alternative of rank r+1. Accounting for the finite sample bias in the test, we find insufficient evidence to reject the null hypothesis of no cointegrating relations at the 5% significance level. Consequently, the VECM reduces to a VAR in the differences of variables (Kilian and Lutkepohl, 2016). Per the previous review of cointegration tests, we also perform Johansen's trace test. This test has as the alternative hypothesis that the rank is greater than assumed under the null hypothesis. Here we reject the null hypothesis of no cointegration (both under the asymptotic case and after applying Cheung and Lai's (1993) finite sample correction). Moving to the trace test's next null hypothesis (a single cointegrating rank), we fail to reject this null once applying the finite sample scaling factor. 
 
-Kilian and Lutkepohl (2016) highlight the asymmetric consequences of imposing a unit root. When the underlying data generating process possesses a unit root, the reduced form model can benefit from increased efficiency in estimation by imposing a unit root. Failing to impose a unit root in such a case would only reduce the precision of the Least Squares estimates.  In contrast, when the underlying process does not follow a unit root, incorrectly imposing one would result in over-differencing - yielding an inconsistent estimator. Nevertheless the tests conducted provide little evidence of cointegrating relations, and thus the VAR in differences is viewed as the appropriate specification.
-
-
-Despite this, in this context the VAR in differences offers a unique interpretation as well as ensuring proper specification. This also highlights its benefit over a VECM with a single cointegrating rank. Thus we estimate our model as a VAR in differences with 3 lags (as the lag order is reduced by differencing). 
-
+This shows some discrepancy in the specification suggested by the two tests. Kilian and Lutkepohl (2016) highlight the asymmetric consequences of imposing a unit root. When the underlying data generating process possesses a unit root, the reduced form model can benefit from increased efficiency in estimation by imposing a unit root. Failing to impose a unit root in such a case would only reduce the precision of the Least Squares estimates.  In contrast, when the underlying process does not follow a unit root, incorrectly imposing one would result in over-differencing - yielding an inconsistent estimator. While this argument would apply to both cases (cointegrating rank 0 or 1), as previously mentioned, the case of no cointegration reduces to a VAR in differences which is more robust to misspecification than the VECM. Thus, given the ambiguity in the results of the tests for cointegration, and recalling that the Johansen's tests has been noted to detect spurious cointegration, we choose the VAR in differences representation of the model. Given the differenceing, the lag order reduces to 3.   
 
 **For robustness we also perform Phillips-Ouliaris' (1990) residual based test for cointegration. Using this test we again fail to reject the null hypothesis of no cointegration, suggesting that a VECM is not an appropriate representation for our data.** 
 
@@ -1142,7 +1138,7 @@ df_exp_all <- data.frame(
 ggplot(df_rev_all, aes(x = Period, y = IRF, color = Sample)) +
   geom_line(size = 1.2) +
   labs(
-    title = "IRF: Revenue Response to Expenditure Shock",
+    title = "IRF: Revenue Response to Revenue Shock",
     x = "Periods Ahead",
     y = "Impulse Response"
   ) +
@@ -1156,7 +1152,7 @@ ggplot(df_rev_all, aes(x = Period, y = IRF, color = Sample)) +
 ggplot(df_exp_all, aes(x = Period, y = IRF, color = Sample)) +
   geom_line(size = 1.2) +
   labs(
-    title = "IRF: Expenditure Response to Revenue Shock",
+    title = "IRF: Expenditure Response to Expenditure Shock",
     x = "Periods Ahead",
     y = "Impulse Response"
   ) +
@@ -1413,6 +1409,20 @@ summary(ca.jo_result_trace)
 # scaling_factor <-  T/(T-N*k)
 scaling_factor <-  length(clean_data2$Year)/(length(clean_data2$Year)-6*4)
 
+
+# Max Eigenvalue test H0 r=0:
+# test statistic: 41.78 
+# Asymptotic Critical value (5% sig level): 39.43 
+# scaling_factor = 1.1875
+# Finite sample critical value = 90.39 * scaling_factor = 46.82312
+# After applying the scaling factor we no longer reject the null of no cointegration. We now consider the trace test. 
+
+# Trace test H0 r=0:
+# test statistic: 115.81 
+# Asymptotic Critical value (5% sig level): 90.39 
+# scaling_factor = 1.1875
+# Finite sample critical value = 90.39 * scaling_factor = 107.3381
+# After applying the scaling factor, we no longer have sufficient evidence to reject the null of no cointegration.
 
 vecm <- vec2var(ca.jo_result_max_eig, r = 1)  # r = cointegration rank
 
