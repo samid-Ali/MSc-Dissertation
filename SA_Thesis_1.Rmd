@@ -1,5 +1,5 @@
 ---
-title: "The Macroeconomic Effects of Fiscal Adjusments in The UK "
+title: "A SVAR Analysis of the Elasticity of GDP to Fiscal Shocks "
 author: "Samid Ali"
 output:
   pdf_document:
@@ -115,6 +115,9 @@ While Baldacci, Gupta, and Granados (2012) find that successful debt consolidati
 They use duration analysis to support their analysis, investigating hpw 
 
 ## Synthesis of Methodology
+
+Ramey (2019) surveys the literature on fiscal multipliers, among the empirical approaches for estimating the effects of fiscal policy are SVARs and DSGE models. Ramey highlights the identification of exogenous variation as a challenge for both of these methodologies.
+In this review Ramey highlights variation in estimates for the fiscal multipliers, with ranges for government spending varying from 0.3 to 2. Ramey highlights that tax multipliers are typically negative, howver with much greater variability, reporting a range from 0 for corporate income tax in an estimated DSGE model, to -5 in for overall taxes in an SVAR identified using sign restrictions. .
 
 DSGE
 
@@ -706,6 +709,32 @@ FEVD_result <- fevd(svar_model, n.ahead = 10)  # Forecast horizons
 exp_irf <- round(irf_result$irf$dif_log_expenditure[, 3],2)
 rev_irf <- round(irf_result$irf$dif_log_revenue[, 3],2)
 
+# Attempt to construct present value multipliers
+
+disc_rate <- mean(data$mean_SR_Rate)
+horizon <- length(exp_irf)
+discount_factors <- 1 / ((1 + disc_rate)^(0:(horizon - 1)))
+
+
+level_irf_exp_response <- exp(exp_irf) - 1  # % change in Y relative to baseline
+level_irf_rev_response <- exp(rev_irf) - 1  # % change in G relative to baseline
+level_irf_rev <- exp(round(irf_result$irf$dif_log_revenue[, 1],2)) - 1  # % change in G relative to baseline
+
+level_irf_exp <- exp(round(irf_result$irf$dif_log_expenditure[, 5],2)) - 1  # % change in G relative to baseline
+
+pv_exp_response <- sum(level_irf_exp_response * discount_factors)
+pv_exp <- 1 + sum(level_irf_exp * discount_factors)
+Exp_PV = pv_exp_response/pv_exp
+# Exp_PV
+
+pv_rev_response <- sum(level_irf_rev_response * discount_factors)
+pv_rev <- 1 + sum(level_irf_rev * discount_factors)
+Rev_PV = pv_rev_response/pv_rev
+# Rev_PV
+
+
+
+
 exp_irf_df <- as.data.frame(
   cbind(
     seq(0,10),
@@ -755,7 +784,7 @@ ggplot(exp_irf_df, aes(x = Quarter)) +
   geom_line(aes(y = Expenditure), color = "blue", size = 1.2) +
   geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
   labs(
-    title = "Impulse Response of Government Expenditure",
+    title = "Cumulative Impulse Response Function",
     x = "Quarter",
     y = "Log-Difference Response"
   ) +
@@ -771,20 +800,24 @@ ggplot(rev_irf_df, aes(x = Quarter)) +
   geom_line(aes(y = Revenue), color = "blue", size = 1.2) +
   geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
   labs(
-    title = "Impulse Response of Government Revenue",
-    x = "Period",
+    title = "Cumulative Impulse Response Function",
+    x = "Quarter",
     y = "Log-Difference Response"
   ) +
   custom_theme
 ```
 
-There are multiple definitions for fiscal multipliers in the literature, this paper follow's Ramey (2019), defining them as "the ratio of the change in output to the change in the [fiscal variable] that caused it". This allows us to interpret our IRF results as fiscal multipliers. Clearly this definition is not complete as IRFs are dynamic functions, their value may change depending on the period considered. This paper pays special attention to 2 horizons, the instantaneous multiplier, and the multiplier after 10 quarters. While the dynamics of the fiscal multipliers could be expected to last beyond 10 quarters, we expect the majority of the response of output to a transitory shock to the fiscal variables to be captured within this horizon. Furthermore, extrapolating to further horizons would reduce the confidence with which we could report our results. Therefore we report the cumulative structural impulse response functions up to a horizon of 10 quarters including bands for the 68% confidence intervals. Kilian and Lutkepohl (2016) highlight that given the short sample sizes VAR models are typically estimated on, this level is more appropriate than the typical 5% significance level. Furthermore, given the low sample size we do not appeal to asymptotic results, instead we report a bootstrap confidence interval. Using a 68% confidence interval therefore requires fewer iterations to accurate estimate this interval. The IRF function from the VARS library in R implements Efron's (1992) percentile interval. It should be highlighted that unlike standard confidence intervals constructed using standard errors, Efron's percentile interval are often asymmetric about the point estimate (Efron, 1981).
+We report the cumulative structural impulse response functions up to a horizon of 10 quarters including bands for the 68% confidence intervals. Kilian and Lutkepohl (2016) highlight that given the short sample sizes VAR models are typically estimated on, this level is more appropriate than the typical 5% significance level. Furthermore, given the low sample size we do not appeal to asymptotic results, instead we report a bootstrap confidence interval. Using a 68% confidence interval therefore requires fewer iterations to accurate estimate this interval. The IRF function from the VARS library in R implements Efron's (1992) percentile interval. It should be highlighted that unlike standard confidence intervals constructed using standard errors, Efron's percentile interval are often asymmetric about the point estimate (Efron, 1981). Regarding the maximum forecast horizon of 10 quarters, it is believed that the majority of the response of GDP to the fiscal shocks should be captured within this window, additionally, extrapolating further out, we would have less confidence in the point estimates.  
 
-Here we focus on the response of GDP to the fiscal variables, the appendix includes comprehensive details of the IRFs for each of the variables. Figure 1 summarises the results for a shock to government expenditure. Given the model specification, the results will be interpreted in terms of percentage growth. We find a point estimate of `r round(irf_result$irf$dif_log_expenditure[1, 3],2)`, suggesting that a standard deviation shock to the percentage growth of expenditure is associated with a reduction in GDP growth of `r cat(round(irf_result$irf$dif_log_expenditure[1, 3],2) * 100, "%")` **(-22% of a standard deviation?)**. The confidence interval for this IRF is `r  cat("(",round(irf_result$Lower$dif_log_expenditure[1, 3],2), ",", round(irf_result$Upper$dif_log_expenditure[1, 3],2), ")")` - ( -0.29 , -0.08 ). As 0 is not contained in this interval, it suggests that there is a statistically significant crowding out effect of government expenditure. Nevertheless, tracing the IRF out over time, by the next quarter the cumulative response is positive,  stabilising at a value of `r round(irf_result$irf$dif_log_expenditure[11, 3],2)` by the 10th quarter. However, the percentile intervals for these later IRFs contain 0 and thus these results are not statistically significant. 
+Here we focus on the response of GDP to the fiscal variables, figure 1 summarises the results for a transitory shock to government expenditure. Given the model specification, the results are interpreted as elasticities in terms of percentage growth. We find a point estimate of `r round(irf_result$irf$dif_log_expenditure[1, 3],2)`, suggesting that a standard deviation shock to the percentage growth of expenditure is associated with a reduction in GDP growth of `r cat(round(irf_result$irf$dif_log_expenditure[1, 3],2) * 100, "%")` **(-22% of a standard deviation?)**. The confidence interval for this IRF is `r  cat("(",round(irf_result$Lower$dif_log_expenditure[1, 3],2), ",", round(irf_result$Upper$dif_log_expenditure[1, 3],2), ")")` - ( -0.29 , -0.08 ). As 0 is not contained in this interval, it suggests that there is a statistically significant crowding out effect of government expenditure. Nevertheless, tracing the IRF out over time, by the next quarter the cumulative response is positive,  stabilising at a value of `r round(irf_result$irf$dif_log_expenditure[11, 3],2)` by the 10th quarter. However, the percentile intervals for these later IRFs contain 0 and thus these results are not statistically significant. 
 
 
-Considering now the response of GDP to a shock to government revenues, we find no effect in the quarter of the shock. There is a temporary negative effect in the following quarter, however this is reversed as we report a positive cumulative IRF by the second quarter. Similar to the response to government expenditure, following the 2nd quarter no further effects are detected. Again, our percentile intervals include 0, and thus the multiplier for government revenue is not statistically significant. Interestingly, the reported point estimates for government spending and revenue have similar magnitudes, despite much of the literature reporting differences. 
+Considering now the response of GDP to a shock to government revenues, we find no effect in the quarter of the shock. However, the following 4 quarters see positive responses, with the cumulative IRF peaking a year after the initial shock and remaining at this level. Based on the bootstrap confidence interval, this effect is statistically significant. Additionally, the response of a positive shock to government revenue is itself positive, conflicting with the results from the literature. We interpret this in our discussion. 
 
+
+However, the IRFs report the response of GDP growth to a shock to growth in the fiscal variables, as the scales for these variables are not equal, a conversion factor must be applied to convert the elasticities into multipliers. Various competing conversion factors have been used in the literature, Ramey (2019) provides a review, noting the limitations of approaches commonly used, instead suggesting  
+
+There are multiple definitions for fiscal multipliers in the literature, this paper follow's Ramey (2019), defining them as "the ratio of the change in output to the change in the [fiscal variable] that caused it". This allows us to interpret our IRF results as fiscal multipliers. Clearly this definition is not complete as IRFs are dynamic functions, their value may change depending on the period considered. This paper pays special attention to 2 horizons, the instantaneous multiplier, and the multiplier after 10 quarters. While the dynamics of the fiscal multipliers could be expected to last beyond 10 quarters, we expect the majority of the response of output to a transitory shock to the fiscal variables to be captured within this horizon. Furthermore, extrapolating to further horizons would reduce the confidence with which we could report our results. Therefore
 
 
 
@@ -804,6 +837,12 @@ Considering now the response of GDP to a shock to government revenues, we find n
 
 ## FEVDs
 
+**Need to update**
+
+We now consider the results for the FEVD. Unlike the IRFs, which traces out the dynamic responses of variables to a transitory shock to one of the model variables, the FEVD measures the proportion of forecast error variance in a variable that is attributable to each shock. For GDP, we find that `r paste0(round(FEVD_result$dif_log_GDP[1,3] * 100, 0), "%")` of variability is captured by itself, a figure that drops to `r paste0(round(FEVD_result$dif_log_GDP[10,3] * 100, 0), "%")` by the 10th quarter. This is a relatively large share, suggesting that GDP growth is largely driven by its own dynamics. Considering now the share of the FEVD for GDP attributed to the fiscal variables at this horizon, we find they both contribute similarly to the variability in GDP growth, with FEVD shares of  
+`r paste0(round(FEVD_result$dif_log_GDP[10,1] * 100, 1), "%")` and `r paste0(round(FEVD_result$dif_log_GDP[10,5] * 100, 1), "%")` for government expenditure and revenue respectively.
+
+Recalling the VAR in differences specification with logarithms,
 
 Given that we have used a VAR in differences, with a logarithmic functional form for the variables initially in levels, we can interpret the FEVD as illustrating how each shock contributes to volatility in the growth in each variable. Considering GDP, we find that 
 `r paste0(round(FEVD_result$dif_log_GDP[1,3] * 100, 0), "%")` of variability in GDP growth is explained by itself a quarter after a shock. By 10 quarters, this percentage reduces to `r paste0(round(FEVD_result$dif_log_GDP[10,3] * 100, 0), "%")`. While a reduction, this still highlights a notable degree of persistence in GDP. In fact, the fiscal variables explain only  `r paste0(round((FEVD_result$dif_log_GDP[10,1] + FEVD_result$dif_log_GDP[10,5])* 100, 0), "%")` of the Mean Squared Prediction Error in GDP growth. This supports the IRF results, which finds negligible impact of fiscal policy on GDP. 
@@ -844,7 +883,7 @@ hetero_test <- arch.test(reduced_VAR, lags.multi = 5)
 # --- Step 1: Define Parameters ---
 break_year <- 2008
 p <- 1
-Rep <- 100
+Rep <- 1000
 T_break <- which((clean_data$Year == break_year))[1]  # First observation of break year
 
 
@@ -962,7 +1001,7 @@ if (length(boot_stats) > 0) {
 
 ```
 
-Lutkepohl and Kilian (2016) highlight paramater instability as a major concern for SVAR analysis. Following the Global Financial Crisis (GFC) there were major changes to government finances **(source?)**, which may have lead to changes in the structural parameters. This can also be seen in the plots in the data appendix, where the trends appear to change in 2008. We thus consider as a test for robustness whether the parameters have remained stable across the period, using 2008 as a potential breakpoint. 
+**Lutkepohl and Kilian (2016) highlight paramater instability as a major concern for SVAR analysis. Following the Global Financial Crisis (GFC) there were major changes to government finances **(source?)**, which may have lead to changes in the structural parameters. This can also be seen in the plots in the data appendix, where the trends appear to change in 2008. We thus consider as a test for robustness whether the parameters have remained stable across the period, using 2008 as a potential breakpoint.** 
 
 Using an asymptotic likelihood based Chow test we find significant evidence to reject the null hypothesis of no parameter instability. Nevertheless, Lutkepohl and Candelon (2000) highlight that when the sample size is low relative to the nuber of parameters, the Chow test may have distorted size. Given that we are considering a 6-dimensional VAR in this analysis, with a sample period of less than 40 yeas at a quarterly frequency, this issue is likely present in this analysis. Therefore we also consider a bootstrap version of the Chow statistic the authors show to have more desirable finite sample properties.
 
@@ -980,8 +1019,7 @@ chow_plot+
   custom_theme
 ```
 
-Through this process we can derive the empirical distribution of the bootstrap time series.
-*Chow statistic under the null hypothesis of parameter stability*. We then compute the pseudo p-value as the percentage of times the bootstrap statistic exceeds the test statistic. Using `r Rep` replications, we find a p-value of 0, this can be further seen in figure 3 where the test statistic exceeds even the greatest boostrap statistic by a factor of 2. This supports the previous asymptotic test of parameter instability. We therefore estimate the SVAR on the post-GFC sample to determine whether there are differences in the estimated fiscal multipliers in the most recent period. 
+Through this process we can derive the empirical distribution of the bootstrap time series. We then compute the pseudo p-value as the percentage of times the bootstrap statistic exceeds the test statistic. Using `r Rep` replications, we find a p-value of 0, this can be further seen in figure 3 where the test statistic exceeds even the greatest boostrap statistic by a factor of 2. This supports the previous asymptotic test of parameter instability. We therefore estimate the SVAR on the post-GFC sample to determine whether there are differences in the estimated fiscal multipliers in the most recent period. 
 
 
 
@@ -995,6 +1033,7 @@ T_break <- which((clean_data$Year == break_year))[1]  # First observation of bre
 
 Y_post_GFC <-  Y[(T_break + 1):nrow(Y), ]
 
+# chow_check <- clean_data[(T_break + 1):nrow(Y), ]
 
 # reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
 
@@ -1069,11 +1108,11 @@ ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
   custom_theme
 ```
 
-Figures 3 and 4 compare the IRFs under the restricted model and unrestricted model (post GFC). Only the point estimates are reported, given the reduced sample size while keeping the number of model parameters fixed, we expect greater uncertainty in the IRF estimates, reflected in the confidence intervals. Consequently, we do not expect any of the previously insignificant results to change. ^[Along with the IRFs for all of the variables, the confidence intervals for the post GFC specification can be seen in the appendix. It should be noted that the confidence intervals under this specification show noticeable asymmetry. Efron (1981) highlights that this is expected in small samples. This thus supports the use of the restricted model in order to obtain more meaningful estimates which we can test for significance.] 
+Figures 3 and 4 compare the IRFs under the restricted model and unrestricted model (post GFC). Only the point estimates are reported, given the reduced sample size while keeping the number of model parameters fixed, we expect greater uncertainty in the IRF estimates, reflected in the confidence intervals. Consequently, we do not expect any of the previously insignificant results to change. ^[It should be noted that the confidence intervals under this specification show noticeable asymmetry. Efron (1981) highlights that this is expected in small samples. This thus supports the use of the restricted model in order to obtain more meaningful estimates, which we can test for significance.] 
 
-We see little difference in IRFs between the restricted and unrestricted models. While for revenue there is a noticeable discrepancy between the models after a year, with a factor of over 3, by 10 quarters this gap has closed. Additionally, the instantaneous response is essentially the same.
+For expenditure, the post GFC IRF follows a similar path to the total period, despite overall reporting slightly lower point estimates. Nevertheless, the results for the unrestricted model are contained within the confidence interval for reported for the overall period. Thus this supports the low responsiveness of GDP to shocks to government spending. 
 
-For expenditure, the post GFC IRF follows a similar path to the total period, despite overall reporting lower point estimates by approximately 0.5. Nevertheless, the results for the restricted model are contained within the confidence intervals for both expenditure and revenue. Thus this does not negate this paper's results.
+The IRFs for GDP to a shock to government revenue however are a much greater magnitude, still positive, the IRF peaks at 1.5, again a year after the initial shock. 
 
  
  
@@ -1105,38 +1144,11 @@ exp_irf_1_lag <- round(irf_result_1_lag$irf$dif_log_expenditure[, 3],2)
 rev_irf_1_lag <- round(irf_result_1_lag$irf$dif_log_revenue[, 3],2)
 
 
-reduced_VAR_post_GFC_1_lag <- VAR(Y_post_GFC, p = 1, type = "const")
-
-svar_model_post_gfc_1_lag <- SVAR(reduced_VAR_post_GFC_1_lag, Amat = Amat, estmethod = "direct")
-
-irf_result_post_gfc_1_lag <- irf(svar_model_post_gfc_1_lag, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE) 
-
-exp_irf_post_GFC_1_lag <- round(irf_result_post_gfc_1_lag$irf$dif_log_expenditure[, 3],2)
-rev_irf_post_GFC_1_lag <- round(irf_result_post_gfc_1_lag$irf$dif_log_revenue[, 3],2)
-
-# Combine into one table
-# Combine IRFs into one table
-
-# irf_combined <- cbind(
-#   Period = 0:(length(exp_irf) - 1),
-#   Total_Expenditure = exp_irf,
-#   Total_Revenue = rev_irf,
-#   PostGFC_Expenditure = exp_irf_post_GFC,
-#   PostGFC_Revenue = rev_irf_post_GFC,
-#   PostGFC_Expenditure_1_lag = exp_irf_post_GFC_1_lag,
-#   PostGFC_Revenue_1_lag = rev_irf_post_GFC_1_lag
-#    
-# )
-
-
-
 # Prepare data for Revenue plot
 df_rev_all <- data.frame(
   Period = 0:(length(rev_irf) - 1),
-  Total = rev_irf,
-  PostGFC = rev_irf_post_GFC,
-  PostGFC_1_lag = rev_irf_post_GFC_1_lag,
-  Total_1_lag = rev_irf_1_lag
+  Baseline_lags = rev_irf,
+  Reduced_lags = rev_irf_1_lag
 
   
 ) %>%
@@ -1146,10 +1158,8 @@ df_rev_all <- data.frame(
 # Prepare data for Expenditure plot
 df_exp_all <- data.frame(
   Period = 0:(length(exp_irf) - 1),
-  Total = exp_irf,
-  PostGFC = exp_irf_post_GFC,
-  PostGFC_1_lag = exp_irf_post_GFC_1_lag,
-  Total_1_lag = exp_irf_1_lag
+  Baseline_lags = exp_irf,
+  Reduced_lags = exp_irf_1_lag
 
 ) %>%
   pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
@@ -1206,6 +1216,7 @@ Alternatively, this paper has used a linear VAR model, meaning that results are 
 
 This also highlights limitations of previous SVAR analyses of fiscal multipliers. B+P, ... use data net taxes which the government does not have full control over. Instead the government controls tax rates and tax legislation. While these would be expected to be positively correlated with government revenue this is not necessarily the case.
 
+Nguyem, Onnis, and Rossi (2020) estimate the effects of income and consumption tax changes, 
 
 cf with research and theory
 
@@ -1760,7 +1771,7 @@ run_var_analysis <- function(model_data_type) {
   assign(paste0("FEVD_result_b_", suffix), fevd_b, envir = .GlobalEnv)
 
   # Plot FEVDs
-  plot(fevd_a)
+  # plot(fevd_a)
   plot(fevd_b)
 }
 
@@ -1780,5 +1791,29 @@ run_var_analysis(model_data)
 
 
 ```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+
+rev_irf_df_GFC <- as.data.frame(
+  cbind(
+    seq(0,10),
+    irf_result_post_gfc$irf$dif_log_revenue[, 3],
+    irf_result_post_gfc$Lower$dif_log_revenue[, 3],
+    irf_result_post_gfc$Upper$dif_log_revenue[, 3]
+  )
+)
+
+colnames(rev_irf_df_GFC) <- c("Quarter","Revenue", "LB", "UB")
+
+
+ggplot(rev_irf_df_GFC, aes(x = Quarter)) +
+  geom_ribbon(aes(ymin = LB, ymax = UB), fill = "lightblue", alpha = 0.4) +
+  geom_line(aes(y = Revenue), color = "blue", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+  labs(
+    title = "Impulse Response of Government Revenue",
+    x = "Period",
+    y = "Log-Difference Response"
+  ) +
+  custom_theme
+
 ```
 
