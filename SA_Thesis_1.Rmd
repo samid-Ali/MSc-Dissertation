@@ -710,44 +710,6 @@ FEVD_result <- fevd(svar_model, n.ahead = 10)  # Forecast horizons
 exp_irf <- round(irf_result$irf$dif_log_expenditure[, 3],2)
 rev_irf <- round(irf_result$irf$dif_log_revenue[, 3],2)
 
-# Attempt to construct present value multipliers
-
-disc_rate <- mean(data$mean_SR_Rate)
-horizon <- length(exp_irf)
-discount_factors <- 1 / ((1 + disc_rate)^(0:(horizon - 1)))
-
-# c(exp_irf[1], diff(exp_irf))
-# c(rev_irf[1], diff(rev_irf))
-
-
-
-level_irf_exp_response <- exp(exp_irf) - 1  # % change in Y relative to baseline
-level_irf_rev_response <- exp(rev_irf) - 1  # % change in G relative to baseline
-level_irf_rev <- exp(round(irf_result$irf$dif_log_revenue[, 1],2)) - 1  # % change in G relative to baseline
-
-level_irf_exp <- exp(round(irf_result$irf$dif_log_expenditure[, 5],2)) - 1  # % change in G relative to baseline
-
-mean_gdp <-  mean(data$GDP)
-mean_expenditure <-  mean(data$Expenditure_SA)
-mean_revenue <-  mean(data$Revenue_SA)
-
-pv_exp_response <- sum(level_irf_exp_response * discount_factors)
-pv_exp <- 1 + sum(level_irf_exp * discount_factors)
-Exp_PV = pv_exp_response/pv_exp
-exp_multiplier <- Exp_PV *(mean_gdp/mean_expenditure)
-# Exp_PV
-
-
-
-pv_rev_response <- sum(level_irf_rev_response * discount_factors)
-pv_rev <- 1 + sum(level_irf_rev * discount_factors)
-Rev_PV = pv_rev_response/pv_rev
-rev_multiplier <- Rev_PV *(mean_gdp/mean_revenue)
-
-# Rev_PV
-
-
-
 
 exp_irf_df <- as.data.frame(
   cbind(
@@ -798,7 +760,7 @@ ggplot(exp_irf_df, aes(x = Quarter)) +
   geom_line(aes(y = Expenditure), color = "blue", size = 1.2) +
   geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
   labs(
-    title = "Cumulative Impulse Response Function",
+    title = "Impulse Response Function",
     x = "Quarter",
     y = "Log-Difference Response"
   ) +
@@ -814,12 +776,14 @@ ggplot(rev_irf_df, aes(x = Quarter)) +
   geom_line(aes(y = Revenue), color = "blue", size = 1.2) +
   geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
   labs(
-    title = "Cumulative Impulse Response Function",
+    title = "Impulse Response Function",
     x = "Quarter",
     y = "Log-Difference Response"
   ) +
   custom_theme
 ```
+
+
 
 We report the cumulative structural impulse response functions up to a horizon of 10 quarters including bands for the 68% confidence intervals. Kilian and Lutkepohl (2016) highlight that given the short sample sizes VAR models are typically estimated on, this level is more appropriate than the typical 5% significance level. Furthermore, given the low sample size we do not appeal to asymptotic results, instead we report a bootstrap confidence interval. Using a 68% confidence interval therefore requires fewer iterations to accurate estimate this interval. The IRF function from the VARS library in R implements Efron's (1992) percentile interval. It should be highlighted that unlike standard confidence intervals constructed using standard errors, Efron's percentile interval are often asymmetric about the point estimate (Efron, 1981). Regarding the maximum forecast horizon of 10 quarters, it is believed that the majority of the response of GDP to the fiscal shocks should be captured within this window, additionally, extrapolating further out, we would have less confidence in the point estimates.  
 
@@ -828,13 +792,61 @@ Here we focus on the response of GDP to the fiscal variables, figure 1 summarise
 
 Considering now the response of GDP to a shock to government revenues, we find no effect in the quarter of the shock. However, the following 4 quarters see positive responses, with the cumulative IRF peaking a year after the initial shock and remaining within this region. Based on the bootstrap confidence interval, this effect is statistically significant. Additionally, the response of a positive shock to government revenue is itself positive, conflicting with the results from the literature. We analyse this in our discussion and provide a hypothesis for this result, as well as its implications for policy. 
 
+```{r, Multipliers}
+# Constructing cumulative present value multipliers
+
+disc_rate <- mean(data$mean_SR_Rate)
+horizon <- length(exp_irf)
+discount_factors <- 1 / ((1 + disc_rate)^(0:(horizon - 1)))
 
 
-**There are multiple definitions for fiscal multipliers in the literature, this paper follow's Ramey (2019), defining them as "the ratio of the change in output to the change in the [fiscal variable] that caused it". This allows us to interpret our IRF results as fiscal multipliers. Clearly this definition is not complete as IRFs are dynamic functions, their value may change depending on the period considered. This paper pays special attention to 2 horizons, the instantaneous multiplier, and the multiplier after 10 quarters. While the dynamics of the fiscal multipliers could be expected to last beyond 10 quarters, we expect the majority of the response of output to a transitory shock to the fiscal variables to be captured within this horizon. Furthermore, extrapolating to further horizons would reduce the confidence with which we could report our results. Therefore**
+level_irf_exp_response <- exp(exp_irf) - 1  # % change in Y relative to baseline
+level_irf_rev_response <- exp(rev_irf) - 1  # % change in G relative to baseline
+level_irf_rev <- exp(round(irf_result$irf$dif_log_revenue[, 1],2)) - 1  # % change in G relative to baseline
+
+level_irf_exp <- exp(round(irf_result$irf$dif_log_expenditure[, 5],2)) - 1  # % change in G relative to baseline
+
+mean_gdp <-  mean(data$GDP)
+mean_expenditure <-  mean(data$Expenditure_SA)
+mean_revenue <-  mean(data$Revenue_SA)
+
+pv_exp_response <- sum(level_irf_exp_response * discount_factors)
+pv_exp <- 1 + sum(level_irf_exp * discount_factors)
+Exp_PV = pv_exp_response/pv_exp
+exp_multiplier <- Exp_PV *(mean_gdp/mean_expenditure)
+# Exp_PV
 
 
-**However, the IRFs report the response of GDP growth to a shock to growth in the fiscal variables, as the scales for these variables are not equal, a conversion factor must be applied to convert the elasticities into multipliers. Various competing conversion factors have been used in the literature, Ramey (2019) provides a review, noting the limitations of approaches commonly used, instead suggesting**  
-Performing these calculations, we find a multiplier for government expenditure of `r round(rev_multiplier, 2)` and of `r round(rev_multiplier, 2)` for government revenue. Both are less than 1 in magnitude, suggesting relatively small multipliers. 
+
+pv_rev_response <- sum(level_irf_rev_response * discount_factors)
+pv_rev <- 1 + sum(level_irf_rev * discount_factors)
+Rev_PV = pv_rev_response/pv_rev
+rev_multiplier <- Rev_PV *(mean_gdp/mean_revenue)
+
+# Rev_PV
+
+
+```
+
+Following Mountford and Uhlig (2009) we define our present value multipliers at the 10 quarter horizon as:
+
+\[
+\text{Fiscal Multiplier}_H = 
+\frac{
+\sum_{h=0}^{H} (1 + r)^h \cdot y_h
+}{
+\sum_{h=0}^{H} (1 + r)^h \cdot f_h
+}
+\cdot
+\frac{\bar{y}}{\bar{f}}
+\tag{9}
+\]
+
+
+
+Where $y_h$ denotes the response of GDP to the fiscal instrument at horizon h ^[Given the VAR in differences specification of this paper, the terms $y_h$ and $f_h$ are not the IRF estimates. We must recover these by taking the exponent of our estimates and subtracting 1. The differences of logarithms is equal to the logarithm of the ratio, thus through exponentiation we obtain the ratio. Subtracting 1 from this yields the response of the variable, as desired.], $f_h$ the response of the fiscal instrument to itself at horizon h, H the total horizon (10 quarters in this analysis), and $r$ the mean short term interest rate (which we calculate to be `r round(disc_rate,2)` to 2 basis points). The term $\frac{\bar{y}}{\bar{f}}$ is a scaling factor representing the average ratio of GDP to the fiscal instrument, given that the IRFs are in terms of the fiscal instrument, this allows for an interpretation in terms of the share of GDP. Ramey (2019) argues that using this ratio can make multiplies appear more countercyclical, instead they propose that the modeled variables are divided by lagged GDP to mitigate this. However, Owyang, Ramey, Zubairy note that this transformation is difficult to perform in the typical VAR methods for computings IRFs. They instead rely on Jorda's (2005) local projections estimator of the IRF. Kilian and Lutkepohl (2016) provide an account of the limitations of this framework, therefore we apply the scaling factor. While this would subject our multipliers to Ramey's (2019) critique, it allows for a better comparison with the literature and avoids the possible incorrect implementation of the proposed adjustment. 
+
+Performing these calculations, we find a multiplier for government expenditure of `r round(exp_multiplier, 2)` and of `r round(rev_multiplier, 2)` for government revenue. Both are less than 1 in magnitude, suggesting relatively small multipliers. In the next section we consider the robustness of these multipliers to misspecifications in our model, we then discuss the implications of these results.
  
 
 
@@ -851,22 +863,6 @@ Performing these calculations, we find a multiplier for government expenditure o
 ```
 
 
-## FEVDs
-
-**Need to update**
-
-We now consider the results for the FEVD. Unlike the IRFs, which traces out the dynamic responses of variables to a transitory shock to one of the model variables, the FEVD measures the proportion of forecast error variance in a variable that is attributable to each shock. For GDP, we find that `r paste0(round(FEVD_result$dif_log_GDP[1,3] * 100, 0), "%")` of variability is captured by itself, a figure that drops to `r paste0(round(FEVD_result$dif_log_GDP[10,3] * 100, 0), "%")` by the 10th quarter. This is a relatively large share, suggesting that GDP growth is largely driven by its own dynamics. Considering now the share of the FEVD for GDP attributed to the fiscal variables at this horizon, we find they both contribute similarly to the variability in GDP growth, with FEVD shares of  
-`r paste0(round(FEVD_result$dif_log_GDP[10,1] * 100, 1), "%")` and `r paste0(round(FEVD_result$dif_log_GDP[10,5] * 100, 1), "%")` for government expenditure and revenue respectively.
-
-Recalling the VAR in differences specification with logarithms,
-
-Given that we have used a VAR in differences, with a logarithmic functional form for the variables initially in levels, we can interpret the FEVD as illustrating how each shock contributes to volatility in the growth in each variable. Considering GDP, we find that 
-`r paste0(round(FEVD_result$dif_log_GDP[1,3] * 100, 0), "%")` of variability in GDP growth is explained by itself a quarter after a shock. By 10 quarters, this percentage reduces to `r paste0(round(FEVD_result$dif_log_GDP[10,3] * 100, 0), "%")`. While a reduction, this still highlights a notable degree of persistence in GDP. In fact, the fiscal variables explain only  `r paste0(round((FEVD_result$dif_log_GDP[10,1] + FEVD_result$dif_log_GDP[10,5])* 100, 0), "%")` of the Mean Squared Prediction Error in GDP growth. This supports the IRF results, which finds negligible impact of fiscal policy on GDP. 
-
-**cf IRFs, large persistence in GDP growth consistent with the low multipliers observed, after 10 periods, the fiscal variables combimned explain only c 20% of variability in GDP ...**
-
-
-## Counterfactual 
 
 # Robustness
 
@@ -1095,13 +1091,70 @@ df_exp <- data.frame(
 
 ```
 
+```{r, Multipliers Post GFC}
+# Constructing cumulative present value multipliers
+
+
+
+
+disc_rate_post_gfc <- mean(data[(T_break + 1):nrow(data), ]$mean_SR_Rate)
+# horizon <- length(exp_irf)
+discount_factors_post_gfc <- 1 / ((1 + disc_rate_post_gfc)^(0:(horizon - 1)))
+
+
+level_irf_exp_response_post_gfc <- exp(exp_irf_post_GFC) - 1  # % change in Y relative to baseline
+level_irf_rev_response_post_gfc <- exp(rev_irf_post_GFC) - 1  # % change in G relative to baseline
+level_irf_rev_post_GFC <- exp(round(irf_result_post_gfc$irf$dif_log_revenue[, 1],2)) - 1  # % change in G relative to baseline
+
+level_irf_exp <- exp(round(irf_result_post_gfc$irf$dif_log_expenditure[, 5],2)) - 1  # % change in G relative to baseline
+
+mean_gdp_post_gfc <-  mean(data[(T_break + 1):nrow(data), ]$GDP)
+mean_expenditure_post_gfc <-  mean(data[(T_break + 1):nrow(data), ]$Expenditure_SA)
+mean_revenue_post_gfc <-  mean(data[(T_break + 1):nrow(data), ]$Revenue_SA)
+
+pv_exp_response_post_gfc <- sum(level_irf_exp_response_post_gfc * discount_factors_post_gfc)
+pv_exp_post_gfc <- 1 + sum(level_irf_rev_post_GFC * discount_factors_post_gfc)
+Exp_PV_post_gfc = pv_exp_response_post_gfc/pv_exp_post_gfc
+exp_multiplier_post_gfc <- Exp_PV_post_gfc *(mean_gdp/mean_expenditure_post_gfc)
+# Exp_PV
+
+
+
+pv_rev_response_post_gfc <- sum(level_irf_rev_response_post_gfc * discount_factors_post_gfc)
+pv_rev_post_gfc <- 1 + sum(level_irf_rev_post_GFC * discount_factors_post_gfc)
+Rev_PV_post_gfc = pv_rev_response_post_gfc/pv_rev_post_gfc
+rev_multiplier_post_gfc <- Rev_PV_post_gfc *(mean_gdp_post_gfc/mean_revenue_post_gfc)
+
+
+
+# Accounting for the effect of the low interest rate environment since the GFC
+
+pv_exp_response_post_gfc_rate_2 <- sum(level_irf_exp_response_post_gfc * discount_factors)
+pv_exp_post_gfc_rate_2 <- 1 + sum(level_irf_rev_post_GFC * discount_factors)
+Exp_PV_post_gfc_rate_2 = pv_exp_response_post_gfc_rate_2/pv_exp_post_gfc_rate_2
+
+
+exp_multiplier_post_gfc_rate2 <- Exp_PV_post_gfc_rate_2 *(mean_gdp_post_gfc/mean_revenue_post_gfc)
+
+  
+pv_rev_response_post_gfc_rate2 <- sum(level_irf_rev_response_post_gfc * discount_factors)
+pv_rev_post_gfc_rate2 <- 1 + sum(level_irf_rev_post_GFC * discount_factors)
+Rev_PV_post_gfc_rate2 = pv_rev_response_post_gfc_rate2/pv_rev_post_gfc_rate2
+  
+rev_multiplier_post_gfc_rate2 <- Rev_PV_post_gfc_rate2 *(mean_gdp_post_gfc/mean_revenue_post_gfc)
+
+# exp_multiplier_post_gfc_rate2
+# rev_multiplier_post_gfc_rate2
+# Rev_PV
+```
+
 
 ```{r IRF-comp-Expenditure, fig.cap="GDP Responses to Government Compared", fig.align='center'}
 # Plot Expenditure IRFs
 ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
   geom_line(size = 1.2) +
   labs(
-    title = "Cumulative IRFs Over Time (Restricted vs Unrestricted Model)",
+    title = "IRFs Over Time (Restricted vs Unrestricted Model)",
     x = "Quarters Ahead",
     y = "Impulse Response"
   ) +
@@ -1116,7 +1169,7 @@ ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
 ggplot(df_rev, aes(x = Period, y = IRF, color = Sample)) +
   geom_line(size = 1.2) +
   labs(
-    title = "Cumulative IRFs Over Time (Restricted vs Unrestricted Model)",
+    title = "IRFs Over Time (Restricted vs Unrestricted Model)",
     x = "Quarters Ahead",
     y = "Impulse Response"
   ) +
@@ -1186,12 +1239,13 @@ df_exp_all <- data.frame(
 
 ```
 
+
 ```{r IRF-comp-Revenue_all, fig.cap="GDP Responses to Government Revenue Compared 2", fig.align='center'}
 # Plot Revenue IRFs
 ggplot(df_rev_all, aes(x = Period, y = IRF, color = Sample)) +
   geom_line(size = 1.2) +
   labs(
-    title = "IRF: Revenue Response to Revenue Shock",
+    title = "IRFs Over Time (Restricted vs Unrestricted Model)",
     x = "Periods Ahead",
     y = "Impulse Response"
   ) +
@@ -1216,10 +1270,73 @@ ggplot(df_exp_all, aes(x = Period, y = IRF, color = Sample)) +
 
 
 
+```{r, Multipliers 1 lag}
+# Constructing cumulative present value multipliers
+
+level_irf_exp_response_1_lag <- exp(exp_irf_1_lag) - 1  # % change in Y relative to baseline
+level_irf_rev_response_1_lag <- exp(rev_irf_1_lag) - 1  # % change in G relative to baseline
+level_irf_rev_1_lag <- exp(round(irf_result_1_lag$irf$dif_log_revenue[, 1],2)) - 1  # % change in G relative to baseline
+
+level_irf_exp_1_lag <- exp(round(irf_result_1_lag$irf$dif_log_expenditure[, 5],2)) - 1  # % change in G relative to baseline
+
+
+pv_exp_response_1_lag <- sum(level_irf_exp_response_1_lag * discount_factors)
+pv_exp_1_lag <- 1 + sum(level_irf_exp_1_lag * discount_factors)
+Exp_PV_1_lag = pv_exp_response_1_lag/pv_exp_1_lag
+exp_multiplier_1_lag <- Exp_PV_1_lag *(mean_gdp/mean_expenditure)
+
+
+
+pv_rev_response_1_lag <- sum(level_irf_rev_response_1_lag * discount_factors)
+pv_rev_1_lag <- 1 + sum(level_irf_rev_1_lag * discount_factors)
+Rev_PV_1_lag = pv_rev_response_1_lag/pv_rev_1_lag
+rev_multiplier_1_lag <- Rev_PV_1_lag *(mean_gdp/mean_revenue)
+
+# exp_multiplier_1_lag
+# rev_multiplier_1_lag
+
+
+```
+
+
+
 consider reduced lag length (improved efficiency/ parsimony)
 
 
 # Discussion/ Policy Implications
+
+
+```{r FEVD Table Output}
+
+# Create a data frame with separate columns
+multiplier_table <- data.frame(
+  Specification = c("1 lag", "Post-GFC", "Baseline"),
+  Expenditure = c(exp_multiplier_1_lag, exp_multiplier_post_gfc, exp_multiplier),
+  Revenue     = c(rev_multiplier_1_lag, rev_multiplier_post_gfc, rev_multiplier)
+)
+
+# Reshape to long format for kable
+long_table <- pivot_longer(multiplier_table, cols = c(Expenditure, Revenue),
+                           names_to = "Fiscal Instrument", values_to = "Multiplier")%>%
+  mutate(Multiplier = round(Multiplier, 2))  %>%
+  arrange(`Fiscal Instrument`, Specification)
+
+
+
+# Display the table
+# kable(long_table, caption = "Present Value Multipliers by Specification and Fiscal Instrument")
+
+```
+
+
+**Interpret results**
+**Compare with lit**
+**Policy Implications**
+**Future Reserach**
+Table 1 summarises the results of this paper. Overall we find weak evidence for a crowding out effect of governement spending. This response is both 
+
+`r kable(long_table, caption = "Present Value Multipliers by Specification and Fiscal Instrument")`
+
 
 This analysis has found fiscal multipliers that are practically and statistically insignificant
 
@@ -1704,10 +1821,6 @@ plot(FEVD_result)
 
 ```
 
-```{r FEVD Table Output}
-
-FEVD_result
-```
 ## FEVDs post GFC:
 ```{r Chow tmp}
 
