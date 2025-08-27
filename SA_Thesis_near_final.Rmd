@@ -1,0 +1,1463 @@
+---
+title: "An SVAR Analysis of UK Fiscal Multipliers "
+author: "Samid Ali"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+
+
+# library(knitr)
+# library(stargazer)
+# library(clipr)
+#library(kableExtra) 
+
+library(ggplot2)
+library(knitr)
+library(ivreg)
+library(ggdag)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(stargazer)
+library(clipr)
+library(tibble)
+library(lubridate)
+library(boot)
+library(seasonal)
+library(purrr)
+library(urca)
+library(tseries)
+library(knitr)
+
+
+lapply(c("ggplot2", "dplyr", "data.table", "lubridate", "janitor", "broom", "tibble", "tidyr", "aTSA", "vars"),
+       require, character.only = TRUE)
+
+# knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+
+
+```
+
+
+
+\newpage
+
+
+
+## Abstract
+
+This paper contributes to the literature on government finances. We estimate fiscal multipliers for the UK using a six-dimensional Structural Vector Autoregressive Model. This analysis uses quarterly data from 1987:Q1 to 2023:Q3 and appeals to short term recursive identifying restrictions to recover the responses of GDP to structural shocks to fiscal policy. We report cumulative present value multipliers, finding a negative multiplier for government expenditure that is both weak and insignificant. For government revenue, we find a statistically significant positive multiplier. We test for potential misspecification, finding these results to be robust. We discuss the policy implications, noting potential issues with the definition for government revenue, which is commonly used in the literature. Thus we focus on the implications for government expenditure, suggesting scope for spending based fiscal consolidation. We highlight that the aggressive measures suggested by the literature are within the observed historical variability, meaning that agents may not update their beliefs in response to the proposed policy. Thus this research concludes, suggesting scope for the UK to improve its fiscal position. 
+
+\newpage
+
+## Table of Figures
+\listoffigures
+
+
+
+## Table of Tables
+\listoftables
+
+\newpage
+
+
+
+
+# Introduction
+
+Debt to GDP in the UK has exceeded 100% ^[Gross debt, for the general government. The ONS (2024) highlights that the general level of government is used for international comparisons. We explore further the use of government data at the general level when we discuss our empirical strategy.] (ONS, 2024), a wide strand of research highlights the economic costs of such levels of indebtedness, although attempts at fiscal consolidation have proven ineffective (Blanchard and Leigh, 2013). This has been suggested to be the result of policymakers relying on inaccurate estimates of fiscal multipliers. This paper aims to address this gap, contributing to a better understanding of fiscal multipliers, to facilitate more informed policy decision making.
+
+Specifically, our review of the literature highlights 2 notable gaps. Firstly, the lack of research investigating fiscal multipliers in the UK. While it could be argued that results from other developed economies could be extrapolated to the UK, we highlight that structural characteristics in economies can lead to meaningful differences in the estimated multipliers. We discuss the costs of indebtedness, the need for fiscal consolidation, and the risk of relying on incorrect fiscal multipliers. This motivates the first objective of this research: to estimate the fiscal multipliers in the UK. As a second objective, we aim to provide a review of the assumptions often made implicit in Structural Vector Autoregressive (SVAR) analysis. The motivation for this is to highlight the modelling decisions made and how results may be sensitive to these. Given the emphasis we find placed on differences in empirical specifications affecting estimates of the multiplier, this is a crucial gap in the existing research.  
+
+This paper is organised as follows; Section 2 provides a review of the related literature, focusing on the costs of high indebtedness and evidence on the effects of fiscal consolidation. We also provide a synthesis of the methods used to estimate fiscal multipliers, highlighting the use of  SVARs. This provides us with sufficient context and foundations to proceed with section 3  where we introduce the data and reduced form model. Here the Vector Error Correction Model (VECM) representation is considered as a generalisation of the Vector Autoregressive (VAR) model which can yield efficiency gains when properly specified. Following this, in Section 4 we introduce the identifying assumptions to allow us to recover the structural shocks. With our model now defined, Section 5 presents the results of this paper, focusing on the Impulse Response Function (IRF) and Cumulative Present Value Fiscal Multipliers. in Section 6 we consider robustness checks such as parameter stability and a lower lag length to determine whether the results are sensitive to the specification. Section 7 proceeds with a discussion of our results and policy implications. Section 8 concludes this paper.
+
+# Literature Review
+
+
+## Costs of high indebtedness
+
+Warmedinger, Checherita-Westphal, and De Cos (2015) emphasise the importance of public debt sustainability for ensuring macroeconomic stability. Recent economic crises have been met with government intervention, leading to further strains on public finances. For instance, the OECD (2012) draw attention to the fiscal challenges facing countries following the Global Financial Crisis (GFC). They also note that by 2011, gross government debt had exceeded 100% of GDP for the OECD as an aggregate. These concerns have been exacerbated following the Covid pandemic where governments implemented fiscal measures to mitigate the economic costs of the pandemic (IMF, 2023). 
+
+Makin and Layton (2021) highlight that governments must employ fiscal responsibility to protect their economies from the risks that high indebtedness exposes them to. There are several mechanisms through which these risks may be presented. High indebtedness reduces the ability of countries to effectively respond counter cyclically to economic shocks. Additionally, when the interest rate exceeds the growth rate, the economy is unable to sustain the cost of debt. While Blanchard (2019) suggests that the low interest environments relative to growth seen recently have been persistent historically (which would suggest that debt could be self-stabilising due to economic growth outpacing the cost of debt), he also argues that there would still be a welfare cost in such a scenario. This is because Blanchard argues that capital accumulation reduces in response to high indebtedness. This aligns with the analysis of Alesina and Ardagna (1998) that "Wealth rises when future tax burdens decline": economic agents anticipate greater tax burdens due to the excessive levels of public indebtedness, and consequently confidence worsens leading to lower consumption and investment. 
+
+
+Kumar and Woo (2015) provide further evidence of the cost of public indebtedness, finding that greater indebtedness is associated with lower economic growth. They find noticeable non-linearities in this result, with the most severe effect occurring when public indebtedness exceeds 90% of GDP. Ilzetzki, Mendoza, and Vegh (2013) suggest that shocks to government spending can have strong negative effects on output at debt levels of as little as 60% of GDP. Recalling that public indebtedness has exceeded 100% in the OECD overall (OECD, 2012), these results will be of particular interest for advanced economies. This highlights the importance of fiscal consolidation  to ensure the long-term resilience of the economy. The IMF (2024) assert that economies should rebuild their fiscal buffers to reduce debt vulnerabilities, proposing that fiscal adjustments would need to be in the region of 4% of GDP. The OECD (2012) have argued for more aggressive adjustments, exceeding 5% of GDP in order to bring debt down to 50% of GDP. This figure would require the UK to halve its current debt levels (ONS, 2024). Thus, achieving this objective would require significant fiscal adjustments. 
+
+
+## Fiscal Consolidaton
+
+While the importance of fiscal consolidation has been emphasised, it is crucial that these measures are not at the expense of the broader economy. By investigating forecast errors for a sample of European countries, Blanchard and Leigh (2013) found that larger anticipated fiscal consolidation was associated with lower growth. They interpret this finding as due to the fiscal multipliers being greater than those anticipated by forecasters. Consequently, fiscal tightening would have further dampened demand, meaning that improvements to government finances through fiscal consolidation would be offset by reduced growth. Gechert, Horn, and Paetz (2019) adopt a similar methodology, finding that austerity measures in the Euro Area deepened the GFC, with large persistence in their results. This suggests that, even in the long run, poorly implemented fiscal adjustments could be counterproductive. Fatas and Summers (2018) extend this research, investigating the long-term effects that fiscal adjustments have had on GDP. Their analysis suggests that fiscal consolidations have failed to lower the debt-to-GDP ratio due to a hysteresis effect of contractionary fiscal policy. This research underscores the need to effectively quantify fiscal multipliers, allowing policymakers to better understand the potential trade-offs between various economic objectives.
+
+Despite this, the literature has struggled to gain consensus on the size, and even the sign of fiscal multipliers (Caldara and Kamps, 2008). Similarly, Ramey (2016) notes that there has been conflicting evidence in the literature as to which fiscal policy has the greater multiplier, noting that the lack of precision of estimates have made it difficult to make meaningful comparisons. The next subsection focuses on the methodologies used to estimate fiscal multipliers. Before proceeding, we discuss further evidence in the literature of heterogeneity in fiscal multipliers.
+
+Ramey (2019) surveys the literature on fiscal multipliers, noting the prominence of SVAR and Dynamic Stochastic General Equilibrium (DSGE) models to estimate multipliers. In this review, Ramey highlights variation in estimates for the fiscal multipliers, with ranges for government spending ranging from 0.3 to 2. Ramey highlights that tax multipliers are typically negative, however with much greater variability, reporting a range from 0 for corporate income tax in an estimated DSGE model, to -5 in for overall taxes in an SVAR identified using sign restrictions. In line with standard economic theory, this suggests that output decreases in response to greater taxes.
+
+Canzoneri et al (2016) suggest that fiscal multipliers can vary throughout the business cycle, with greater effects being observed during recessions. Auerbach and Goronichenko (2012) also provide evidence of the greater effectiveness of fiscal policy during recessions. Furthermore, they note that there can be heterogeneity of multipliers within specific fiscal instruments, noting that military spending had the greatest multipliers. Adding to the literature on state dependent multipliers, Ghassibe and Zanetti (2022) note that the cause of a recession determines the extent of fiscal multipliers. While they report government spending to have larger multipliers during demand-driven recessions, they note that these can be ineffective when the recession is driven by supply side factors. Conversely, they note that policies such as reductions in income taxes can be effective during supply-driven downturns, as they can help to boost aggregate supply.
+
+Ilzetzki, Mendoza, and Vegh (2013) suggest that the heterogeneity in the estimates reported in the literature can be attributed to differences in structural characteristics of the economy considered. Key characteristics that the authors emphasise include: the level of development, public indebtedness, and openness to trade. While advanced economies share many of these characteristics, this literature review has highlighted the risk of extrapolating results of fiscal multipliers obtained from other economies. Few papers have assessed fiscal multipliers in the UK, thus it may be inappropriate for UK policymakers to rely on existing estimates for fiscal multipliers.
+
+
+Among the papers considering UK fiscal multipliers is Perotti (2005), which estimates the effects of fiscal policy in the UK as well as several other OECD countries. Perotti reports results across 2 time periods, finding that the response of GDP to a government spending shock was positive in both periods. Although, for net taxes he finds that the response has changed from positive to negative more recently. Given the age of this research, it is natural to ask whether the results still hold. Similarly, Afonso and Sousa (2012) evaluate the effects of fiscal policy across a set of advanced economies including the UK. Cloyne (2013) employs a narrative approach, constructing a dataset on UK tax changes. Through their analysis, they find a strong positive response of GDP to an exogenous cut to aggregate taxes. Nguyen, Onnis, and Rossi (2020) provide a disaggregate view of the responses of output to taxes, finding heterogeneity between the effects of conumption and income taxes on GDP.
+
+Alesina, Favero, and Giavazzi (2015) compare multipliers due to spending and tax adjustments. They find that tax-based adjustments have more severe effects than those based on adjustments to expenditure. They attribute this result to business confidence. They argue that sentiment recovers quickly in response to government spending cuts, however increasing revenue does not address the root of the problem and thus confidence struggles to recover. Similarly, they attribute confidence to their finding that adjustments are less effective when subject to reversals: this creates noise when future adjustments are made, agents are unable to ascertain the reliability of announcements, and consequently their effectiveness decreases. This reinforces the importance of research to better understand the fiscal multiplier for different policy instruments, particularly as this may vary across countries and over time. 
+
+
+## Review of SVAR approaches
+
+
+Blanchard and Perotti (2002) introduced the use of SVARs for estimating the effects of fiscal policy, relying on institutional information to facilitate identification. They also provide an early definition for the fiscal variables, which broadly aligns to the European System of Accounts (ESA, 2010). Since then, the use of alternative identification methods has grown. For instance, De Castro (2008) outlines economic rationale justifying a recursive ordering of variables allowing for estimation of the SVAR parameters via a Cholesky decomposition (Kilian and Lutkepohl, 2016). Addittionaly, Mountford and Uhlig (2009) have introduced the use of sign restrictions to identify fiscal shocks. Beyond this, Bayesian SVAR methods have been used, such as those employed by Afonso and Sousa (2011, 2012).
+
+Underlying an SVAR model is the reduced form representation. If this is not properly specified, the identifying assumptions will not be able to overcome the potential biases or loss in precision that this may introduce. Similarly, Ramey (2016) highlight that estimates for fiscal multipliers have lacked the precision needed to make effective comparisons. This demonstrates the need for a detailed understanding of the assumptions implicit in different VAR specifications. In this section we provide an overview of the approaches followed in the literature. In the next section, as we discuss our econometric methodology, we return to this question, ensuring that the VAR specified in this paper is adequately grounded in econometric theory. 
+
+Capek and Cuaresma (2020) simulated 20 million fiscal multipliers, highlighting how methodological choices contribute to the heterogeneity in estimates of fiscal multipliers prevalent in the literature. Consequently, they advocate for explicitly outlining modelling choices and assumptions. Gechert (2017) provides a synthesis of the methodologies used to estimate fiscal multipliers, focusing on competing definitions for the fiscal multiplier and possible issues in its estimation. We return to the question of defining the fiscal multiplier when we report our results. Amongst the issues with estimation that Gechert highlights is the potential for omitted variable bias in the VAR model. Kilian and Lutkepohl (2016) raise a similar concern for Impulse Response Function (IRF) analysis with SVARs: when the VAR is misspecified due to the omission of relevant variables, the IRFs from this VAR model will not represent the actual responses of the underlying data generating process (DGP).
+Kim et al (2021) extend the recursively identified SVAR, by considering the more general Vector Error Correction Model (VECM) representation of the reduced form. Finding evidence of cointegrating relationships, ^[The authors rely on Johansen's cointegration tests although they do not appear to consider finite sample bias in the test, which we highlight later in this paper. Nevertheless, given the use of monthly data, their sample size is greater than this paper's leading to a lower finite sample scaling factor. Their tests for cointegrating ranks appear to remain valid after applying the finite sample correction. ] they take advantage of these in estimating the reduced form model, thus taking advantage of the information on the model's long run dynamics. The existing literature has relied on the levels VAR representation with little evidence of testing for deviations from this specification. While Killian and Lutkepohl (2016) highlight the robustness of the levels VAR representation under varying assumptions to the DGP, its use when not representative of the DGP can lead to more imprecise estimates.
+
+
+
+```{r dataProc}
+
+df <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/GDP Real.csv", skip = 1)
+
+
+# Filter the data frame to exclude rows where the column 'title' matches any of the specified values
+
+
+filtered_df <- df %>%
+  # Keep only the quarterly data
+  filter(nchar(CDID) == 7 & substr(CDID, 6, 6) == "Q") %>%
+  # Select relevant columns and rename them
+  dplyr::select(CDID, Deflator = L8GG, GDP = CAGQ) %>%
+  # dplyr::select(CDID, Deflator = L8GG, GDP = ABMI) %>%
+  # Create new columns and convert types
+  mutate(
+    Year = as.numeric(substr(CDID, 1, 4)),
+    Quarter = substr(CDID, 6, 7),
+    Q = as.numeric(substr(CDID, 7, 7)),
+    Deflator = as.numeric(Deflator),
+    GDP = as.numeric(GDP)
+  ) %>%
+  # Filter by year (can modify for testing)
+  filter(Year >= 1987)
+
+
+ 
+# fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data.csv", skip = 1)
+
+fiscal_raw <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Fiscal Data General.csv")
+
+fiscal_proc <- fiscal_raw %>% 
+  dplyr::select(Date_ID = Identifier, Revenue = Revenue, Expenditure = Expenditure) %>% 
+  mutate(Year = as.numeric(gsub("\\D", "", Date_ID)),
+         Period = gsub("\\d{4}", "", Date_ID))  %>% 
+  mutate(
+    Q = case_when(
+      Period == "Jan to Mar " ~ 1,
+      Period == "Apr to Jun " ~ 2,
+      Period == "Jul to Sep " ~ 3,
+      Period == "Oct to Dec " ~ 4
+      ),
+    Unique_Period = Year +(Q/4)
+   
+  ) %>% 
+  # Convert to numeric 
+  mutate(Revenue = as.numeric(gsub(",", "", Revenue) ),
+         Expenditure = as.numeric(gsub(",", "", Expenditure )))
+
+# fiscal_proc <- fiscal_raw %>% 
+#   dplyr::select(Date_ID = Transaction, Revenue = OTR, Expenditure = OTE) %>% 
+#   subset(Date_ID !=  "Dataset identifier code" & Date_ID != "Identifier") %>% 
+#   mutate(Year = as.numeric(gsub("\\D", "", Date_ID)),
+#          Period = gsub("\\d{4}", "", Date_ID))  %>% 
+#   mutate(
+#     Q = case_when(
+#       Period == "Jan to Mar " ~ 1,
+#       Period == "Apr to Jun " ~ 2,
+#       Period == "Jul to Sep " ~ 3,
+#       Period == "Oct to Dec " ~ 4
+#       ),
+#     Unique_Period = Year +(Q/4)
+#    
+#   ) %>% 
+#   # Convert to numeric and multiply by 1 million so values as these will later be made into per capita terms
+#   mutate(Revenue = as.numeric(gsub(",", "", Revenue) ),
+#          Expenditure = as.numeric(gsub(",", "", Expenditure )))
+
+# join GDP deflator and GDP data
+
+population <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Population.csv", 
+                    skip = 4, 
+                    header = TRUE) %>% 
+  subset(`Country Name` == "United Kingdom") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "Year") %>% 
+  rename(Population = V1 ) %>% 
+  filter(grepl("^\\d{4}$", Year)) %>% 
+  mutate(Year = as.numeric(Year),
+         Population = as.numeric(Population))
+
+Interest_SR <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/3 month Rate.csv") %>% 
+  mutate(Date = dmy(Date),
+         month = month(Date),
+         Year = year(Date),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  group_by(Year, Q) %>% 
+  summarize(mean_SR_Rate = mean(Rate, na.rm = TRUE))
+
+
+
+SONIA <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Bank of England  Database.csv") %>% 
+  mutate(Date = dmy(Date),
+         month = month(Date),
+         Year = year(Date),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  group_by(Year, Q) %>% 
+  summarize(mean_SONIA = mean(SONIA, na.rm = TRUE))
+
+Policy_Rate <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Policy Rate.csv") %>%
+  mutate(Date = parse_date_time(`Date Changed`, orders = "dmy"),
+         Q = quarter(Date),
+         Year = year(Date)) %>%
+  group_by(Year, Q) %>%
+  summarise(mean_SR_Rate = mean(Rate, na.rm = TRUE), .groups = "drop") %>%
+  complete(Year = full_seq(Year, 1), Q = 1:4) %>%  # Ensure all Year-Quarter combinations
+  arrange(Year, Q) %>%
+  fill(mean_SR_Rate, .direction = "down")  # Fill missing rates by propagating the previous value
+
+Exports <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Exports.csv") %>% 
+  mutate(Date = dmy(Month),
+         month = month(Month),
+         Year = year(dmy(Month)),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  group_by(Year, Q) %>% 
+  summarize(Exports = sum(Exports, na.rm = TRUE))
+
+ERI <- fread("D:/Samid work/University/KCL - Econ and Policy/Dissertation/Data/Boe ERI.csv") %>% 
+  mutate(
+         month = month(Date),
+         Year = year(dmy(Date)),
+         Q = case_when(
+           month %in% 1:3 ~ 1,
+           month %in% 4:6 ~ 2,
+           month %in% 7:9 ~ 3,
+           month %in% 10:12 ~ 4
+         )) %>% 
+  rename(ERI = Value)
+
+
+data <- fiscal_proc %>% 
+  left_join(filtered_df, by = c("Q" = "Q", "Year" = "Year")) %>% 
+  left_join(Interest_SR, by = c("Q" = "Q", "Year" = "Year")) %>% 
+  left_join(Exports, by = c("Q" = "Q", "Year" = "Year")) %>% 
+  left_join(population, by = c("Year" = "Year")) %>% 
+  left_join(ERI, by = c("Q" = "Q", "Year" = "Year")) %>%
+# Convert variables to per capita, note revenue, expenditure, and GDP are in £ million so need to multiply. Doing this
+  mutate(RevenuePerCapita = (Revenue *10^6) /Population,
+         ExpenditurePerCapita = (Expenditure *10^6) /Population,
+         GDPPerCapita = (GDP *10^6) /Population) %>% 
+  #  Create scaling factor to convert from nominal to current prices
+  mutate(real_sf = Deflator /104.4151) %>%  # Divide by current deflator rate (104.8583) as GDP is measured in prices as of ... This allows for better comparability.
+  # Create real fiscal variables
+  mutate(Revenue_real = Revenue * real_sf,
+         Expenditure_real = Expenditure * real_sf) %>% 
+  
+  # Seasonal Adjustment of data using X-13ARIMA-SEATS
+   mutate(Revenue_SA = final(seas(ts(Revenue_real, start = min(Year), frequency = 4))),
+         Expenditure_SA = final(seas(ts(Expenditure_real, start = min(Year), frequency = 4))),
+         GDP_SA = final(seas(ts(GDP, start = min(Year), frequency = 4))),
+         mean_SR_Rate = final(seas(ts(mean_SR_Rate, start = min(Year), frequency = 4))),
+         ERI = final(seas(ts(ERI, start = min(Year), frequency = 4)))
+         )  %>%
+ # convert back to numeric
+     mutate(
+    Revenue_SA = as.numeric(Revenue_SA),
+    Expenditure_SA = as.numeric(Expenditure_SA),
+    GDP_SA = as.numeric(GDP_SA),
+    mean_SR_Rate = as.numeric(mean_SR_Rate),
+    ERI = as.numeric(ERI)
+    
+  ) %>%
+# Convert variables (except interest rate) to logs
+  # Note multiplying by 10^6 for variables that are defined in £millions
+  mutate(log_revenue = log(Revenue_SA *10^6),
+         log_expenditure = log(Expenditure_SA *10^6),
+         log_GDP = log(GDP_SA *10^6),
+         log_deflator = log(Deflator),
+         log_ERI = log(ERI),
+         log_exports = log(Exports *10^6)) %>% 
+  mutate(
+    dif_log_revenue = log_revenue - lag(log_revenue),
+    dif_log_expenditure = log_expenditure - lag(log_expenditure),
+    dif_log_GDP = log_GDP - lag(log_GDP),
+    dif_log_deflator = log_deflator - lag(log_deflator),
+    dif_log_ERI = log_ERI - lag(log_ERI),
+    dif_interest_rate = mean_SR_Rate - lag(mean_SR_Rate),
+    dif_log_exports = log_exports - lag(log_exports)
+  )
+
+
+         
+model_data2 <- data %>%
+  dplyr::select(Year, CDID, log_expenditure, mean_SR_Rate, log_GDP, log_ERI, log_revenue,  log_deflator)
+
+# model_data2 <- data %>%
+#   dplyr::select(Year, CDID, log_expenditure, mean_SR_Rate, log_GDP, log_exports, log_revenue,  log_deflator)
+
+
+# model_data <- data %>%
+#   dplyr::select(Year, CDID, dif_log_expenditure, dif_interest_rate, dif_log_exports, dif_log_GDP, dif_log_revenue,  dif_log_deflator)
+
+model_data <- data %>%
+dplyr::select(Year, CDID, dif_log_expenditure, dif_interest_rate, dif_log_GDP, dif_log_ERI, dif_log_revenue, dif_log_deflator)
+
+# model_data <- data %>%
+# dplyr::select(Year, CDID, dif_log_expenditure, mean_SR_Rate, dif_log_GDP, log_ERI, dif_log_revenue, dif_log_deflator)
+
+
+
+
+```
+
+
+# Econometric Methodology
+
+Having defined the scope of our analysis, we highlight the methodology employed by this research: a SVAR leveraging a recursive ordering of variables for identification. We use quarterly data from 1987:1 to 2023:3, modelling this using a six-dimensional VAR at with a lag length of 4. This lag order follows Blanchard and Perroti (2002) and Caldara and Kamps (2008), and suggests that past values of the endogenous variables continue to have an effect for up to a year. While statistical procedures were not used to determine this lag order, it has an econometric rationale: Kilian and Lutkepohl (2016) note that due to poor finite sample properties of lag selection techniques, it may be appropriate to impose a fixed lag length. Particularly when concerned with impulse response analysis, the risks of underestimating the lag length exceed those of using a larger order which may better reflect the dynamics of the data at the cost of inefficient estimates. Given these considerations, and the degrees of freedom restrictions imposed by the sample size, the lag order of 4 was determined.^[Several information criteria metrics suggest that a lag order of 2 is compatible with our data, this lag order is considered as part of our robustness checks. However, per Kilian and Lutkepohl (2016), we are concerned by the greater cost of underestimating the lag length. Therefore, for the reasons given, we assume a lag order of 4 for our baseline model a priori.]  
+
+Regarding the endogenous variables included in the VAR model, Blanchard and Perotti (2002) investigate the effects of fiscal shocks using a three-dimensional VAR model consisting of GDP, government expenditure, and government revenue. Although such a model could be used to estimate the effects of fiscal shocks, such a specification would risk omitted variable bias, limiting the interpretability of the IRFs (Gechert, 2017; Killian and Lutkepohl, 2016). Therefore, we augment the model to include also a short term interest rate, the GDP deflator, and an exchange rate index (ERI). These variables are included to account for the effects of monetary policy, price rigidities, and interactions with the rest of the world respectively. Consequently, the impulse response functions reported later are better interpreted as the response of GDP to the fiscal variables, ceteris paribus. 
+
+The fiscal variables are sourced from the ONS and defined following the European System of Accounts (ESA, 2010).  The data is available at central, local, and general levels, the ESA defines general government as encompassing both central and local levels. Therefore, the general level is used for this analysis so that the multipliers represent the full effects of fiscal policy. In further detail, 
+government expenditure is defined as the outflows associated with government activities, including consumption, investment, and transfers. The inflows to the government, government revenue, consists of receipts net of transfer and interest payments. Given this definition for government revenue, it can also be interpreted as net taxes. These definitions follow those used elsewhere in the literature (Blanchard and Perotti, 2002; De Castro, 2008), minimising the effect of methodological differences on this paper's results (Gechert, 2017). Given that this analysis uses data from 1987, SONIA, which was introduced in 1997, could not be used as the short term interest rate. Instead we use the 3 month interbank rates sourced from the Federal Reserve Bank of St Louis. We use the Sterling ERI from the Bank of England; an index weighted by trade patterns (Lynch and Whitaker, 2005), thus allowing the ERI to effectively capture the effects of the UK's interactions with other economies.
+
+We use GDP and the fiscal variables in real terms. While data for GDP was sourced from the ONS already in real terms, the ONS (2023) report that the data used for public sector finances are not adjusted for inflation. Therefore, we process the fiscal variables into real terms, scaling by the GDP deflator. ^[Given that the GDP data is in terms of current prices, we also divide by the GDP deflator in Q4 2024 (the final quarter in our data). This allows for more intuitive comparisons of the data.] Following Capek and Cuaresma (2020), who highlight that data for estimating fiscal multipliers is typically seasonally adjusted, we applied the X-13 ARIMA-SEATS method to our variables. GDP was an exception, as it was sourced after seasonal adjustment. This process reduces noise in the data, leading to more meaningful results. Consistent with Fernández (2006), all variables are log-transformed prior to estimation, except for the short-term interest rate, which enters the model in levels. This will facilitate an intuitive interpretation of results in percentage terms. 
+
+
+```{r Bivariate - Optimal Lags}
+
+clean_data <- na.omit(model_data)
+
+clean_data2 <- na.omit(model_data2) 
+
+
+tmp <- clean_data[,-c(1,2)]
+
+OptimalLag <-  VARselect(clean_data[,-c(1,2)], lag.max = 5, type = "none")
+OptimalLag2 <-  VARselect(clean_data2[,-c(1,2)], lag.max = 5, type = "none")
+
+# OptimalLag2$selection
+# OptimalLag$criteria
+# OptimalLag$selection
+# OptimalLag$criteria
+# OptimalLag2$criteria
+
+```
+
+
+
+
+
+
+
+```{r ReducedVAR}
+# library(vars)
+
+# reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
+reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "none")
+# reduced_VAR2 <- VAR(clean_data2[,-c(1,2)], p = 4, type = "both")
+# reduced_VAR <- VAR(clean_data[, -1], p = 4)
+
+# roots(reduced_VAR)
+# roots(reduced_VAR2)
+
+# summary(reduced_VAR)
+
+# Summary reports the roots of the polynomial. 
+
+
+```
+
+
+
+
+
+
+
+## VECM
+
+
+
+
+The reduced-form VAR model can be expressed as:
+
+\[
+X_t = \mu+  A_1 X_{t-1} + \cdots + A_p X_{t-p} + \epsilon_t
+\tag{1}
+\]
+
+where: \[
+X_t = \begin{pmatrix} G_t \\ R_t \\ GDP_t \\ ERI_t \\ NT_t \\ P_t \end{pmatrix}
+\]
+
+Here the vector \(X_t \) defines the endogenous variables, as previously mentioned, we have assumed a lag order  ($p$) of 4. The term \( \mu \) in equation (1) captures the deterministic component of the model. We observe trending behavior between the fiscal variables, GDP, and the GDP deflator. However,  given that this same trend is not observed for the short term interest rate and the ERI, incorporating such a trend could lead to misspecification in the model. Instead, this pattern may reflect unit roots in the data, which many macroeconomic series are argued to possess. Given these potential unit roots, it may be appropriate to consider the VECM representation for the reduced form model. While unit root tests are typically performed to motivate cointegration testing, Maddala and Kim (1998) note the limitations with this approach, namely that these battery of tests are not independent, and thus their size are not as desired.  Instead, Kilian and Lutkepohl (2016) propose that researchers are explicit when imposing when imposing unit roots; for this analysis, we consider all variables to be integrated of order 1. We revisit the matter of the deterministic component once we have defined the specification for the reduced form.
+
+Kilian and Lutkepohl (2016) show that the VAR model can be reparameterised as a VECM by subtracting the lagged variables and rearranging terms:  
+
+\[
+\Delta X_t = \Pi X_{t-1} + \sum_{i=1}^{k-1} \Gamma_i \Delta X_{t-i} + \mu + \varepsilon_t
+\tag{2}
+\]
+
+When correctly specified, this representation can yield efficiency gains: including the error correction term may allow the model to capture important dynamics in the long run relationships between variables (Martin, Hurn, and Harris; 2013). We therefore perform tests for cointegration to determine the appropriate specification before estimating the model. 
+
+
+Given the small sample sizes associated with macroeconomic time series, various Monte Carlo simulations have been performed to assess the finite sample properties of cointegration tests. Hubrich, Lutkepohl, and Saikkonen (2001) find that Likelihood Ratio type tests are among the best performing, with other classes of tests having worse power or size. Therefore, we focus on this class of cointegration tests.  Madadala and Kim (1998) provide a review of studies investigating Johansen's cointegration tests, concluding that: sample sizes upwards of 100 may be needed to appeal to asymptotic results, tests can be misleading when too few variables are included, and insufficient lag lengths can lead to size distortions. Fortunately, these considerations do not appear to be a concern for this research. As previously discussed, due to concerns with underestimating the lag order when evaluating IRFs, we assume a lag order of 4, which we believe to be at least equal to the true lag parameter.^[While not relied on for determining the lag order, lag order selection procedures including the Akaike Information Criteria suggest that a lag as low as 2 may be appropriate for the levels VAR. Due to the considerations mentioned, we decide to use a fixed lag order of 4. The sensitivity of the final results to the lag order is considered as a robustness check.] Furthermore, we have added additional control variables to the VAR model to mitigate omitted variable bias (Gechert, 2017) which should alleviate the concern raised by Madadala and Kim. Nevertheless, Madadala and Kim highlight further complications with the test. We therefore consider this in detail before testing for cointegration. 
+
+
+Lutkepohl, Saikkonen, and Trenkler (2001) find that in small samples, while trace tests have size distortions, they have power advantages relative to the maximum eigenvalue test. This suggests that there may be merit in considering both tests. Cheung and Lai (1993), using a Monte Carlo simulation, find that there is finite sample bias in Johansen's cointegration tests, with both the maximimum eigenvalue and trace tests finding cointegration at a rate greater than implied by asymptotic theory. They therefore apply a scaling factor to the asymptotic critical values given by
+
+\[
+SF = \frac T {T-kp}
+\tag{3}
+\]
+
+where $T$ is the number of observations, $k$ the number of variables in the system, and p the lag order. Gonzalo and Lee (1998) provide further evidence of bias in Johansen's cointegration tests, identifying cases where the test detects spurious cointegration. In light of this, we ensure the asymptotic results reported as standard are scaled to account for the finite sample bias in the test.
+
+We begin by performing Johansen's maximum eigenvalue test for cointegration, which compares the null hypothesis of rank r, to the alternative of rank r+1. Accounting for the finite sample bias in the test, we find insufficient evidence to reject the null hypothesis of no cointegrating relations at the 5% significance level. Consequently, the VECM reduces to a VAR in the differences of variables (Kilian and Lutkepohl, 2016). Per the previous review of cointegration tests, we also perform Johansen's trace test. This test has as the alternative hypothesis that the rank is greater than assumed under the null hypothesis. Again, we reject the null hypothesis of no cointegration after accounting for the test's finite sample bias. 
+
+Kilian and Lutkepohl (2016) emphasise the asymmetric consequences of imposing a unit root. When the underlying DGP possesses a unit root, the reduced form model can benefit from increased efficiency in estimation by imposing a unit root. Failing to impose a unit root in such a case would only reduce the precision of the Least Squares estimates.  In contrast, when the underlying process does not follow a unit root, incorrectly imposing one would result in over-differencing - yielding an inconsistent estimator. Nevertheless the tests conducted provide little evidence of cointegrating relations, and thus the VAR in differences is viewed as the appropriate specification. As well as the statistical merits of this specification, it yields an intuitive interpretation. As the alternative specification was a VECM with rank 1, we considered the 1st eigenvector for the cointegration relations, and concluded that this did not provide meaningful information on the long run equilibrium behaviour of the system.^[The reported cointegrating relation was 
+ $log\_expenditure = - 0.14 \cdot mean\_SR\_Rate + 1.6  \cdot log\_GDP + 3.9 \cdot log\_ERI -3 \cdot log\_revenue + 9 \cdot log\_deflator + \epsilon_t$  
+ where $\epsilon_t$ is I(0). Inflation and the short term rate both represent costs for government spending, so these would be expected to have negative signs. While this was true for the mean short term rate, the cointegrating relation suggested that a shock to the long run equilibrium of the deflator rate led to a large positive increase to expenditure. This is not expected; while it could be argued that the government spending is relatively inelastic, meaning that the government absorbs increased costs rather than reduce spending, the magnitude of the reported effect is difficult to reconcile and the inconsistency in the signs of the 2 variables questions the appropriateness of this cointegrating relation. Additionally, the cointegrating relation suggests that an increase in government spending from the long run equilibrium is associated with a 3 times greater increase in government revenue (all else equal).] Therefore, we proceed in this analysis with the VAR in differences representation of the model, through this differencing we lose a lag. Returning to the deterministic component, we do not include this for the reduced form model; a constant term would suggest a linear trend in the levels of the variables, however, through differencing our data no longer has a trend. Furthermore, a trend in the differences VAR would suggest a quadratic term in our levels data, which we do not expect.
+ 
+ 
+## Identification
+
+
+Thus far we have only defined the reduced form VAR. The residuals in this model are not meaningful as they are linearly dependent, instead, the interest of this research lies in the structural model. The structural shocks are mutually uncorrelated and have clear interpretations (Kilian and Lutkepohl, 2016). These shocks will allow us to construct FEVDs and IRFs to report the findings of this paper.
+
+The structural model can be written as 
+
+
+\[
+\beta_0 X_t = \mu+  \beta_1 X_{t-1} + \cdots + \beta_p X_{t-p} + u_t
+\tag{4}
+\]
+
+Here $u_t$ denotes the structural errors.
+We also observe that equation 1 for the reduced form model can be rewritten as:
+
+
+\[
+X_t = B_0^{-1}\mu+  B_0^{-1}B_1 X_{t-1} + \cdots + B_0^{-1}B_p X_{t-p} + \epsilon_t
+\tag{1a}
+\]
+
+The term $B_0^{-1}$ is referred to as the structural impact multiplier matrix. Comparing equations 1a and 4, it is clear that knowledge of the structural impact multiplier matrix or its inverse would allow us to move between the structural and reduced form representations, thus recovering the structural shocks. More explicitly, we can write the structural shocks as functions of the reduced form residuals:
+
+\[
+\epsilon_t = B_0 u_t 
+\tag{5}
+\]
+
+As outlined in the literature review, there have been numerous approaches to identifying the structural parameters. This study uses recursive sign restrictions, leveraging the Cholesky decomposition. To recover the structural shocks using this approach, we assume \( B_0 \) to be a lower triangular matrix and that the structural shocks have unitary variance ^[The assumption of unitary variance for the structural shocks is not restrictive as it can be imposed by rescaling the variables. This assumption, however, means that the reduced form covariance matrix reduces to equation 6.].  This corresponds to a causal ordering of the transmission of shocks: the first variable is considered the most exogenous, affecting all others. In contrast, the variable ordered last is considered the most endogenous, being contemporaneously effected by shocks to all other variables, whilst having no instantaneous effect itself on the other variables. Having defined this recursive ordering, given that the matrix \( B_0 \) is assumed to be lower triangular, we can estimate it using the Cholesky decomposition of the covariance matrix of the reduced-form residuals (\( \Sigma_\epsilon \)):
+
+\[ 
+\Sigma_\epsilon = E[\epsilon_t \epsilon_t'] = B_0 B_0'
+\tag{6}
+\]
+
+Therefore, we have that $B_0 = Chol(\Sigma_\epsilon)$
+
+This paper uses the following recursive ordering:
+
+\[
+(G, R, GDP, ERI, NT, P) 
+\tag{7}
+\]  
+
+With the variables corresponding to government expenditure, the short term interest rate, GDP, the Exchange Rate Index, net taxes, and the GDP deflator respectively.
+
+The matrix \( B \) has the form:
+
+\[
+B_0 = \begin{pmatrix} 
+b_{11} & 0 & 0 & 0 & 0 &0 \\ 
+b_{21} & b_{22} & 0 & 0 & 0 &0 \\ 
+b_{31} & b_{32} & b_{33} & 0 & 0 &0 \\ 
+b_{41} & b_{42} & b_{43} & b_{44} & 0 &0 \\ 
+b_{51} & b_{52} & b_{53} & b_{54} & b_{55} &0 \\
+b_{61} & b_{62} & b_{63} & b_{64} & b_{65} & b_{65} 
+\end{pmatrix}
+\tag{8}
+\]
+
+Thus, the structural shocks \( u_t \) can be recovered by:
+
+\[ 
+u_t = B_0^{-1} \epsilon_t 
+\tag{5a}
+\]
+
+
+
+
+Killian and Lutkepohl (2017) stress that identification of the structural parameters is not a purely statistical concern, the restrictions must also be economically meaningful for the resulting structural parameters to be identified. Therefore we proceed with an exposition of the economic assumptions implicit in our identifying restrictions imposed by the matrix $B$. The following is comparable to De Castro's (2006) identifying assumptions.  
+
+Blanchard and Perotti (2002) argue that the use of quarterly data allows government spending to be treated as predetermined with respect to the rest of the variables within the quarter. This is motivated by implementation lags for changes to government spending and consequently this is ordered first. Given physical constraints, the interest rate is assumed not to react instantaneously to price, net taxes, output, or the exchange rate. Thus the short term rate is considered to be the next most exogenous variable. However, monetary policy shocks are assumed to affect output, net taxes, prices, and the exchange rate contemporaneously. De Castro (2006) justifies this assumption by noting that interest rate movements are anticipated and thus they can be transmitted to real variables relatively quickly. Shocks to the exchange rate are assumed to affect net taxes simultaneously, as households adjust to changes in the cost of imports. Investment plans take time to adjust, as does consumption due to internal habit which leads to highly persistent levels of consumption. Consequently, we do not expect shocks to net taxes to affect activity. However, shocks to economic activity are expected to affect contemporaneous tax receipts to the government as households respond to prevailing economic conditions. Despite the aforementioned internal habit, this behaviour is expected as households attempt to smooth fluctuations in their consumption path, consequently they may adjust their behaviours towards consumption and saving, which is expected to have implications for net taxes. 
+
+# Results
+
+```{r structural_VAR}
+
+# Define the 5 dimensional lower triangular matrix, A
+
+# Recover structural VAR using Cholesky decomposition
+
+# Amat <- matrix(c(1, 0, 0, 0, 0,   # Recursive ordering
+#                  NA, 1, 0, 0, 0,  
+#                  NA, NA, 1, 0, 0,  
+#                  NA, NA, NA, 1, 0,  
+#                  NA, NA, NA, NA, 1), 
+#                nrow = 5, byrow = TRUE)
+
+
+# Variables are already ordered per the recursive identification strategy. Thus create a lower triangular matrix 
+k <- ncol(clean_data[,-c(1,2)])
+Amat <- diag(1, k)
+Amat[lower.tri(Amat)] <- NA
+# print(Amat)
+
+
+
+
+svar_model <- SVAR(reduced_VAR, Amat = Amat, estmethod = "direct")
+# svar_model2 <- SVAR(reduced_VAR2, Amat = Amat, estmethod = "direct")
+# ?SVAR()
+
+structural_shocks <- residuals(svar_model)
+
+# svar_model
+
+
+irf_result <- irf(svar_model, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = FALSE)  # Forecast horizons
+# irf_result2 <- irf(svar_model2, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = FALSE)  # Forecast horizons
+# irf_result <- irf(svar_model, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = TRUE)  # Forecast horizons
+# plot(irf_result)
+# Visualize IRFs
+
+FEVD_result <- fevd(svar_model, n.ahead = 10)  # Forecast horizons
+# FEVD_result2 <- fevd(svar_model2, n.ahead = 10)  # Forecast horizons
+
+# plot(FEVD_result)
+# plot(FEVD_result2)
+
+
+
+# Post Covid:
+
+```
+
+
+```{r IRFs_Table}
+
+
+
+
+# Extract IRFs
+exp_irf <- round(irf_result$irf$dif_log_expenditure[, 3],2)
+rev_irf <- round(irf_result$irf$dif_log_revenue[, 3],2)
+
+
+exp_irf_df <- as.data.frame(
+  cbind(
+    seq(0,10),
+    irf_result$irf$dif_log_expenditure[, 3],
+    irf_result$Lower$dif_log_expenditure[, 3],
+    irf_result$Upper$dif_log_expenditure[, 3]
+  )
+)
+
+colnames(exp_irf_df) <- c("Quarter","Expenditure", "LB", "UB")
+
+rev_irf_df <- as.data.frame(
+  cbind(
+    seq(0,10),
+    irf_result$irf$dif_log_revenue[, 3],
+    irf_result$Lower$dif_log_revenue[, 3],
+    irf_result$Upper$dif_log_revenue[, 3]
+  )
+)
+
+colnames(rev_irf_df) <- c("Quarter","Revenue", "LB", "UB")
+
+
+
+
+
+
+
+
+
+```
+
+
+```{r Restricted-Model-Expenditure-IRF, fig.cap="Impulse Response Function of GDP Following a Shock to Expenditure ", fig.align='center'}
+
+# Define a custom theme for consistency
+custom_theme <- theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+# Plot for Expenditure IRF
+ggplot(exp_irf_df, aes(x = Quarter)) +
+  geom_ribbon(aes(ymin = LB, ymax = UB), fill = "lightblue", alpha = 0.4) +
+  geom_line(aes(y = Expenditure), color = "blue", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+  labs(
+    title = "Impulse Response Function",
+    x = "Quarter",
+    y = "Impulse Response"
+  ) +
+  custom_theme
+
+```
+
+
+```{r Restricted-Model-Revenue-IRF, fig.cap="Impulse Response Function of GDP Following a Shock to Revenue ", fig.align='center'}
+# Plot for Revenue IRF
+ggplot(rev_irf_df, aes(x = Quarter)) +
+  geom_ribbon(aes(ymin = LB, ymax = UB), fill = "lightblue", alpha = 0.4) +
+  geom_line(aes(y = Revenue), color = "blue", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+  labs(
+    title = "Impulse Response Function",
+    x = "Quarter",
+    y = "Impulse Response"
+  ) +
+  custom_theme
+```
+
+
+
+We report the structural IRFs^[The IRFs reported are for the marginal responses, the cumulative responses are derived by summing these IRFs. Additionally, due to the model specification, the IRFs are interpreted in terms of growth rates.] up to a horizon of 10 quarters including bands for the 68% confidence intervals. Kilian and Lutkepohl (2016) highlight that given the short sample sizes VAR models are typically estimated on, this level is more appropriate than the typical 5% significance level. Furthermore, given the low sample size we do not appeal to asymptotic results, instead we report a bootstrap confidence interval. Using a 68% confidence interval therefore requires fewer iterations to accurate estimate this interval. The IRF function from the VARS library in R implements Efron's (1979) percentile interval. It should be highlighted that unlike standard confidence intervals constructed using standard errors, Efron's percentile interval are often asymmetric about the point estimate (Efron, 1981). Regarding the maximum forecast horizon of 10 quarters, it is believed that the majority of the response of GDP to the fiscal shocks should be captured within this window, additionally, extrapolating further out, we would have less confidence in the point estimates.  
+
+Here we focus on the response of GDP to the fiscal variables. Figure 1 summarises the results for a transitory shock to government expenditure. Given the model specification ^[A VAR in differences, where the fiscal variables and GDP enter the model in logarithms.], the results are interpreted as elasticities in terms of the percentage growth of the variables. We find a point estimate of `r round(irf_result$irf$dif_log_expenditure[1, 3],2)` in the period of the shock. The confidence interval for this IRF is (-0.27, -0.06). As 0 is not contained in this interval, it suggests that there is a statistically significant crowding out effect of government expenditure^[More specifically, this result suggests that an increase in the growth rate of government expenditure leads to a decrease in the growth rate of GDP. For ease of interability, we later report cumulative present value multipliers.]. Nevertheless, tracing the IRF out over time, by the next quarter the response is  positive (`r round(irf_result$irf$dif_log_expenditure[2, 3],2)`). While this result is statistically significant, in cumulative terms it is negated by the instantaneous negative response to the shock to government spending. Additionally, this reversal is only temporary, with the IRF returning to a negative value the next quarter. By the 4th quarter, the majority of the response is observed, with later marginal responses being essentially 0. Even for the responses from quarter 2 onwards, there is not enough evidence to reject that there was no response based on the reported confidence intervals. 
+
+Considering now the response of GDP to a shock to government revenues, per the ordering assumptions made for identification of the structural model, we find no effect in the quarter of the shock. However, in the following 4 quarters we see positive responses. The majority of the effect of the government revenue shock is observed within the first 2 quarters, with the results becoming statistically insignificant following this. A negative response is observed in the 5th quarter, the magnitude is less than the previous positive responses, and the IRF is not found to be different to 0 based on the confidence interval. The remaining quarters display a similar pattern, with the response again increasing, then observing a reversal of smaller magnitude. Given the limited magnitude of the negative response in the 5th quarter, the IRF reports a cumulative positive response to a government revenue shock. 
+
+
+```{r, Multipliers}
+# Constructing cumulative present value multipliers
+
+disc_rate <- mean(data$mean_SR_Rate)/100
+quarterly_disc_rate <- disc_rate/4
+horizon <- length(exp_irf)
+discount_factors <- 1 / ((1 + disc_rate)^(0:(horizon - 1)))
+quarterly_discount_factors <- (1 + quarterly_disc_rate)^-(0:(horizon - 1))
+
+
+level_irf_exp_response <- exp(exp_irf) - 1  # % change in GDP for shock to G
+level_irf_rev_response <- exp(rev_irf) - 1  # % change in GDP for shock to R 
+level_irf_rev <- exp(round(irf_result$irf$dif_log_revenue[, 5],2)) - 1  # % change in R relative to baseline
+
+level_irf_exp <- exp(round(irf_result$irf$dif_log_expenditure[, 1],2)) - 1  # % change in G relative to baseline
+
+mean_gdp <-  mean(data$GDP)
+mean_expenditure <-  mean(data$Expenditure_SA)
+mean_revenue <-  mean(data$Revenue_SA)
+
+pv_exp_response <- sum(level_irf_exp_response * quarterly_discount_factors)
+pv_exp <- sum(level_irf_exp * quarterly_discount_factors)
+Exp_PV = pv_exp_response/pv_exp
+exp_multiplier <- Exp_PV *(mean_gdp/mean_expenditure)
+
+# exp_multiplier
+
+
+
+pv_rev_response <- sum(level_irf_rev_response * quarterly_discount_factors)
+pv_rev <- sum(level_irf_rev * quarterly_discount_factors)
+Rev_PV = pv_rev_response/pv_rev
+rev_multiplier <- Rev_PV *(mean_gdp/mean_revenue)
+
+# rev_multiplier
+
+
+```
+
+
+The IRFs presented only represent the elasticities of GDP to shocks to the fiscal instruments, these values are not of interest to policymakers (Ramey, 2019). We therefore convert these results to fiscal multipliers. It has been noted that there are numerous alternative fiscal multipliers proposed (Gechert, 2017). For this analysis, we follow Mountford and Uhlig (2009), defining our cumulative present value multipliers at the 10 quarter horizon as:
+
+\[
+\text{Fiscal Multiplier}_H = 
+\frac{
+\sum_{h=0}^{H} (1 + \frac{r}{4})^{-h} \cdot y_h
+}{
+\sum_{h=0}^{H} (1 + \frac{r}{4}){^-h} \cdot f_h
+}
+\cdot
+\frac{\bar{y}}{\bar{f}}
+\tag{9}
+\]
+
+
+
+Where $y_h$ denotes the response of GDP to the fiscal instrument at horizon h^[Given the VAR in differences specification of this paper, the terms $y_h$ and $f_h$ are not the IRF estimates. We must recover these by taking the exponent of our estimates and subtracting 1. The differences of logarithms is equal to the logarithm of the ratio, thus through exponentiation we obtain the ratio. Subtracting 1 from this yields the response of the variable, as desired.], and $f_h$ the response of the fiscal instrument to itself at horizon h, H the total horizon (10 quarters in this analysis). The term  $r$ the mean denotes the short term interest rate (which, over the period, we calculate to be `r cat(round(disc_rate *100,2),"%")`^[Given the quarterly compounding in equation 9, we divide this by 4 to obtain the quarterly discount rate] to 2 basis points). The term $\frac{\bar{y}}{\bar{f}}$ is a scaling factor representing the average ratio of GDP to the fiscal instrument, given that the IRFs are in terms of the fiscal instrument, applying this adjustment allows for an interpretation in terms of the share of GDP. Ramey (2019) contend that using this ratio can make multiplies appear more countercyclical, instead they propose that the modeled variables are divided by lagged GDP to mitigate this. However, Owyang, Ramey, Zubairy note that this transformation is difficult to perform in the typical VAR methods for computings IRFs. They instead rely on Jorda's (2005) local projections estimator of the IRF. Kilian and Lutkepohl (2016) provide an account of the limitations of this framework, noting that its proposed benefits do not hold up to closer scrutiny. They highlight Kilian and Kim's (2011) Monte Carlo simiulation study, which found that in small samples, when the DGP is linear, Local Projection intervals have greater bias and variance. Li, Moller, and Wolf (2024) extend this comparison of Local Projections and traditional VAR estimators of structural IRFs, using thousands of DGPs. They find that while under certain assumptions on the DGP, the Local Projection estimator may have lower bias, it has far greater variance than the VAR estimators. Therefore we have not appealed to the Local Projection framework, instead we have constructed our IRFs using the traditional VAR methodology, and apply the original scaling factor proposed by Mountford and Uhlig (2009). While this would subject our multipliers to Ramey's (2019) critique, it allows for a better comparison with the literature and avoids the potential limitations of relying on the Local Projection framework. 
+
+Performing these calculations, we find a multiplier for government expenditure of `r round(exp_multiplier, 2)` and of `r round(rev_multiplier, 2)` for government revenue. The multiplier for government spending is positive, suggesting a modest crowding in effect. However, given its limited magnitude, and the variability of the IRFs that this figure is derived from, there is not sufficient evidence to reject a weak crowding out effect under this model. In contrast, the government revenue multiplier suggests that shocks to government revenue increase GDP. In the next section we consider the robustness of our results to potential misspecification, following this we are equipped to discuss our results.  
+
+
+
+```{r, IRFs1}
+
+
+
+# structural_shocks <- residuals(svar_model)
+# irf_result <- irf(svar_model, n.ahead = 10)  # Forecast horizons
+# plot(irf_result)  # Visualize IRFs
+
+
+```
+
+
+
+# Robustness
+
+```{r, Restricted Model Diagnostics}
+
+# normality.test(reduced_VAR)
+
+serial_test <- serial.test(reduced_VAR, lags.pt = 16, type = "PT.asymptotic")
+
+
+# serial_test # Don't reject H0 of no autocorrelation
+
+normality_test <- normality.test(reduced_VAR)
+# normality_test
+
+
+hetero_test <- arch.test(reduced_VAR, lags.multi = 5)
+# hetero_test
+
+```
+
+## Chow test for Structural Breaks
+
+
+```{r, Lutkepohl and Candelon (2000) Residual-based Bootstrap Chow Test}
+
+# --- Step 1: Define Restricted Model ---
+# reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
+# --- Step 1: Define Parameters ---
+break_year <- 2008
+p <- 1
+Rep <- 1000
+T_break <- which((clean_data$Year == break_year))[1]  # First observation of break year
+
+
+# --- Step 2: Estimate VAR & Prepare Data ---
+Y <- clean_data[, -c(1, 2)]  # Drop Year + Quarter columns
+var_orig <- VAR(Y, p = p, type = "none")
+resids <- residuals(var_orig)
+centered_resids <- scale(resids, scale = FALSE)  # Centered residuals
+Y_vals <- as.matrix(Y)
+presample <- Y_vals[1:p, ]
+coef_matrix <- Bcoef(var_orig)
+A <- as.matrix(coef_matrix)
+c <- coef_matrix[, ncol(coef_matrix)]
+
+# --- Step 3: Define Chow Function (Lambda_BP) ---
+chow_stat <- function(Y, T_break, p) {
+  tryCatch({
+    
+    T_full  <- nrow(Y) 
+    
+    # Restricted model: full sample
+    model_restricted <- VAR(Y, p = p, type = "none")
+    SSR_restricted <- sum(residuals(model_restricted)^2)
+    
+    # Unrestricted model: separate pre and post samples
+    Y_pre <- Y[1:T_break, ]
+    Y_post <- Y[(T_break + 1):T_full, ]
+    
+    model_pre <- VAR(Y_pre, p = p, type = "none")
+    model_post <- VAR(Y_post, p = p, type = "none")
+    
+    SSR_unrestricted <- sum(residuals(model_pre)^2) + sum(residuals(model_post)^2)
+    SSR_1 <- sum(residuals(model_pre)^2)
+    SSR_tot <- sum(residuals(model_restricted)^2)
+
+
+    # Extract log-likelihoods
+    ll_restricted <- logLik(model_restricted)
+    ll_unrestricted <- logLik(model_pre) + logLik(model_post)
+    
+    
+    
+    # Count number of coefficients per equation (excluding stats like SE, t)
+    k <- nrow(coef(reduced_VAR)[[1]])
+    n_eq <- length(coef(reduced_VAR))  # Number of equations
+    
+    # Degrees of freedom = number of extra parameters in unrestricted models
+    df_chow <<- k * n_eq
+
+
+    # Compute LR test statistic
+    lambda_BP <- -2 * (as.numeric(ll_restricted) - as.numeric(ll_unrestricted))
+ 
+    return(lambda_BP)
+  }, error = function(e) {
+    message("Chow statistic failed: ", e$message)
+    return(NA)
+  })
+}
+
+# --- Step 4: Bootstrap Simulation ---
+set.seed(1234)
+boot_stats <- numeric(Rep)
+
+for (r in 1:Rep) {
+  # FIX: Sample from available residuals only
+  u_star <- centered_resids[sample(1:nrow(centered_resids), size = nrow(Y_vals), replace = TRUE), ]
+
+  Y_boot <- matrix(NA, nrow = nrow(Y_vals), ncol = ncol(Y_vals),
+                   dimnames = list(NULL, colnames(Y_vals)))
+  Y_boot[1:p, ] <- presample
+
+  for (t in (p + 1):nrow(Y_vals)) {
+    Y_lags <- as.vector(t(Y_boot[(t - p):(t - 1), ]))
+    Y_boot[t, ] <- c + A %*% Y_lags + u_star[t, ]
+  }
+
+  boot_stats[r] <- if (anyNA(Y_boot)) NA else chow_stat(Y_boot, T_break, p)
+  # if (r %% 50 == 0) cat("Completed iteration", r, "\n")
+}
+
+boot_stats <- na.omit(boot_stats)
+
+# --- Step 5: Actual Statistic & p-value ---
+actual_stat <- chow_stat(Y_vals, T_break, p)
+p_value_asymptotic <- 1 - pchisq(actual_stat, df_chow)
+p_val <- mean(boot_stats > actual_stat)
+
+# --- Step 6: Plot Results ---
+if (length(boot_stats) > 0) {
+  boot_df <- data.frame(
+    Iteration = 1:length(boot_stats),
+    Chow_Statistic = boot_stats
+  )
+
+ chow_plot <<-  ggplot(boot_df, aes(x = Iteration, y = Chow_Statistic)) +
+    geom_line(color = "dodgerblue", alpha = 0.7) +
+    geom_hline(yintercept = actual_stat, color = "red", linetype = "dashed", linewidth = 1) +
+    geom_point(aes(x = 0, y = actual_stat), color = "red", size = 3) +
+    labs(
+      title = "Bootstrap Chow Test (Recursive)",
+      subtitle = paste("Breakpoint:", break_year, "| p-value:", round(p_val, 4)),
+      x = "Bootstrap Iteration",
+      y = "Chow Test Statistic"
+    ) +
+    theme_minimal()
+} else {
+  warning("No valid bootstrap statistics available to plot.")
+}
+
+# print(actual_stat)
+# print(p_val)
+# print(p_value_asymptotic)
+
+```
+
+Kilian and Lutkepohl (2016) highlight parameter instability as a major concern, noting that this would violate the assumption of stationary needed to motivate VAR analysis. Structural change is a common example of such instability, a posible candidate for this being the GFC, with Ramey (2019) noting that "Fiscal multipliers might be different in the wake of a financial crisis". We therefore consider as a test for robustness whether the parameters have remained stable across the period, using 2008 as a potential breakpoint.
+
+Using an asymptotic likelihood-based Chow test, we find significant evidence to reject the null hypothesis of no parameter instability. Nevertheless, Lutkepohl and Candelon (2000) highlight that when the sample size is low relative to the nuber of parameters, the Chow test may have distorted size. Given that we are considering a 6-dimensional VAR in this analysis, with a sample period of less than 40 years at a quarterly frequency, this issue is likely present in this analysis. Therefore we also consider a bootstrap version of the Chow statistic that the authors show to have more desirable finite sample properties. 
+
+Following Lutkepohl and Candelon (2000), we implement our recursive residual-based boostrap for the Chow test as follows:
+\begin{enumerate}
+  \item Estimate the restricted VAR model (pooling both periods around the GFC).
+  \item Obtain the demeaned residuals from the restricted model.  
+  \item Generate bootstrap residuals by randomly drawing from the centered residuals with replacement.
+  \item For each iteration, estimate the restricted and unrestricted models (where we allow the parameters to vary across the samples).
+  \item Compute the Chow statistic (here we use the same likelihood based Chow test as with our asymptotic testing).
+\end{enumerate}
+
+```{r chow-plot, fig.cap="Bootstrap Chow Test Results", fig.align='center'}
+chow_plot+ 
+  custom_theme
+```
+
+Through this process we can derive the empirical distribution of the bootstrap time series. We then compute the pseudo p-value as the percentage of times the bootstrap statistic exceeds the test statistic. Using `r Rep` replications, we obtain a p-value of `r round(p_val, 3)`. This can be seen in figure 3, where only `r round(p_val, 3) * Rep` bootstrap observations exceed our test statistic from the original data. This supports the previous asymptotic test of parameter instability. We therefore estimate the SVAR on the post-GFC sample to determine whether there are differences in the estimated fiscal multipliers in the most recent period. 
+
+
+
+
+
+### Post GFC Shocks
+
+```{r, SVAR 2}
+
+T_break <- which((clean_data$Year == break_year))[1]  # First observation of break year
+
+Y_post_GFC <-  Y[(T_break + 1):nrow(Y), ]
+
+# chow_check <- clean_data[(T_break + 1):nrow(Y), ]
+
+# reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
+
+
+reduced_VAR_post_GFC <- VAR(Y_post_GFC, p = 3, type = "none")
+
+svar_model_post_gfc <- SVAR(reduced_VAR_post_GFC, Amat = Amat, estmethod = "direct")
+
+irf_result_post_gfc <- irf(svar_model_post_gfc, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = FALSE)
+```
+
+```{r IRFs_Table Post GFC}
+
+exp_irf_post_GFC <- round(irf_result_post_gfc$irf$dif_log_expenditure[, 3],2)
+rev_irf_post_GFC <- round(irf_result_post_gfc$irf$dif_log_revenue[, 3],2)
+
+# Combine into one table
+# Combine IRFs into one table
+irf_combined <- cbind(
+  Period = 0:(length(exp_irf) - 1),
+  Total_Expenditure = exp_irf,
+  Total_Revenue = rev_irf,
+  PostGFC_Expenditure = exp_irf_post_GFC,
+  PostGFC_Revenue = rev_irf_post_GFC
+)
+
+# Prepare data for Revenue plot
+df_rev <- data.frame(
+  Period = 0:(length(rev_irf) - 1),
+  Total = rev_irf,
+  PostGFC = rev_irf_post_GFC
+) %>%
+  pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
+
+
+# Prepare data for Expenditure plot
+df_exp <- data.frame(
+  Period = 0:(length(exp_irf) - 1),
+  Total = exp_irf,
+  PostGFC = exp_irf_post_GFC
+) %>%
+  pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
+
+
+```
+
+```{r, Multipliers Post GFC}
+# Constructing cumulative present value multipliers
+
+
+
+
+disc_rate_post_gfc <- mean(data[(T_break + 1):nrow(data), ]$mean_SR_Rate)
+# horizon <- length(exp_irf)
+# discount_factors_post_gfc <- 1 / ((1 + disc_rate_post_gfc)^(0:(horizon - 1)))
+
+
+level_irf_exp_response_post_gfc <- exp(exp_irf_post_GFC) - 1  # % change in Y relative to baseline
+level_irf_rev_response_post_gfc <- exp(rev_irf_post_GFC) - 1  # % change in G relative to baseline
+level_irf_rev_post_GFC <- exp(round(irf_result_post_gfc$irf$dif_log_revenue[, 5],2)) - 1  # % change in G relative to baseline
+level_irf_exp_post_GFC <- exp(round(irf_result_post_gfc$irf$dif_log_revenue[, 1],2)) - 1  # % change in G relative to baseline
+
+level_irf_exp <- exp(round(irf_result_post_gfc$irf$dif_log_expenditure[, 1],2)) - 1  # % change in G relative to baseline
+
+mean_gdp_post_gfc <-  mean(data[(T_break + 1):nrow(data), ]$GDP)
+mean_expenditure_post_gfc <-  mean(data[(T_break + 1):nrow(data), ]$Expenditure_SA)
+mean_revenue_post_gfc <-  mean(data[(T_break + 1):nrow(data), ]$Revenue_SA)
+
+pv_exp_response_post_gfc <- sum(level_irf_exp_response_post_gfc * quarterly_discount_factors)
+pv_exp_post_gfc <- sum(level_irf_exp_post_GFC * quarterly_discount_factors)
+Exp_PV_post_gfc = pv_exp_response_post_gfc/pv_exp_post_gfc
+exp_multiplier_post_gfc <- Exp_PV_post_gfc *(mean_gdp/mean_expenditure_post_gfc)
+# Exp_PV
+
+
+
+pv_rev_response_post_gfc <- sum(level_irf_rev_response_post_gfc * quarterly_discount_factors)
+pv_rev_post_gfc <-  sum(level_irf_rev_post_GFC * quarterly_discount_factors)
+Rev_PV_post_gfc = pv_rev_response_post_gfc/pv_rev_post_gfc
+rev_multiplier_post_gfc <- Rev_PV_post_gfc *(mean_gdp_post_gfc/mean_revenue_post_gfc)
+
+```
+
+
+```{r IRF-comp-Expenditure, fig.cap="Marginal Response of GDP to Government Spending Compared \n (Restricted vs Unrestricted Model)", fig.align='center'}
+# Plot Expenditure IRFs
+ggplot(df_exp, aes(x = Period, y = IRF, color = Sample)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "IRFs Over Time \n (Restricted vs Unrestricted Model)",
+    x = "Quarters Ahead",
+    y = "Impulse Response"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  custom_theme
+```
+
+
+```{r IRF-comp-Revenue, fig.cap="Marginal Response of GDP to Government Revenue Compared \n (Restricted vs Unrestricted Model)", fig.align='center'}
+# Plot Revenue IRFs
+ggplot(df_rev, aes(x = Period, y = IRF, color = Sample)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "IRFs Over Time \n (Restricted vs Unrestricted Model)",
+    x = "Quarters Ahead",
+    y = "Impulse Response"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  custom_theme
+```
+
+
+
+Figures 3 and 4 compare the IRFs under the restricted model and unrestricted model (post GFC). Only the point estimates are reported; given the reduced sample size while keeping the number of model parameters fixed, we expect greater uncertainty in the IRF estimates, reflected in the confidence intervals.^[It should be noted that the confidence intervals under this specification show noticeable asymmetry. Efron (1981) highlights that this is expected in small samples. This thus supports the use of the restricted model in order to obtain more meaningful estimates, which we can test for significance.] 
+
+For the shock to government expenditure, the post GFC IRF trend closely follows the overall period. While the maximum peak and trough associated with this specification are of greater magnitudes, again, they essentially negate each other. Additionally, they occur at the same horizon, with an instantaneous negative response for GDP, which is replaced by a positive response the following quarter. While there are some discrepancies in the trends following this, these later responses were statistically insignificant, and we find that the point estimates for the Post GFC period are contained within the confidence intervals for the restricted model.
+
+Considering now the IRF for GDP following a shock to government revenue, we find these are much larger for the first year, observing a peak of `r round(rev_irf_post_GFC[2],1)` the quarter following the shock. This positive response continues until the 4th quarter, after which the marginal response ceases. As with the restricted model, we then see the IRFs trace out a similar pattern as before, although of a lower magnitude.
+
+We now report the multipliers under this specification. In constructing these multipliers, we use the same discount rate (the mean short term interest rate over the entire period, scaled to allow for quarterly compounding). Following the GFC, interest rates decreased significantly, with us observing a comparable mean for this period of `r round(disc_rate_post_gfc,2)`. This would affect our reported multipliers, to allow for a better comparison we therefore use the same discount rate. Following the procedure to calculate cumulative present value multipliers, we find a value for government spending of `r round(exp_multiplier_post_gfc,2)` and a government revenue multiplier of `r round(rev_multiplier_post_gfc,2)` in the period following the GFC.
+ 
+ 
+ 
+## Lag length
+
+When defining the empirical specification, we highlighted that the lag order was chosen a priori, and that information criteria suggested a lower order lag was compatible with the data. Therefore, here we estimate the model on a single lag (consistent with 2 lags in the levels VAR). Figures 5 and 6 report the results of this specification, comparing this with the baseline model.
+
+
+```{r, SVAR reduced lag length}
+
+# T_break <- which((clean_data$Year == break_year))[1]  # First observation of break year
+# 
+# Y_post_GFC <-  Y[(T_break + 1):nrow(Y), ]
+
+
+# reduced_VAR <- VAR(clean_data[,-c(1,2)], p = 3, type = "const")
+
+
+reduced_VAR_1_lag <- VAR(clean_data[,-c(1,2)], p = 1, type = "none")
+
+
+svar_model_1_lag <- SVAR(reduced_VAR_1_lag, Amat = Amat, estmethod = "direct")
+
+irf_result_1_lag <- irf(svar_model_1_lag, n.ahead = 10, ci = 0.68, boot = 5000, cumulative = FALSE) 
+
+
+exp_irf_1_lag <- round(irf_result_1_lag$irf$dif_log_expenditure[, 3],2)
+rev_irf_1_lag <- round(irf_result_1_lag$irf$dif_log_revenue[, 3],2)
+
+
+# Prepare data for Revenue plot
+df_rev_all <- data.frame(
+  Period = 0:(length(rev_irf) - 1),
+  Baseline_lags = rev_irf,
+  Reduced_lags = rev_irf_1_lag
+
+  
+) %>%
+  pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
+
+
+# Prepare data for Expenditure plot
+df_exp_all <- data.frame(
+  Period = 0:(length(exp_irf) - 1),
+  Baseline_lags = exp_irf,
+  Reduced_lags = exp_irf_1_lag
+
+) %>%
+  pivot_longer(cols = -Period, names_to = "Sample", values_to = "IRF")
+
+
+```
+
+
+
+```{r IRF-comp-Expenditure_all, fig.cap="Marginal Response of GDP to Government Expenditure Compared  \n (Baseline vs Reduced Lags)", fig.align='center'}
+# Plot Expenditure IRFs
+ggplot(df_exp_all, aes(x = Period, y = IRF, color = Sample)) +
+  geom_line(size = 1.2) +
+  labs(
+    title =  "IRFs Over Time \n (Restricted vs Unrestricted Model)",
+    x = "Periods Ahead",
+    y = "Impulse Response"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  custom_theme
+```
+
+```{r IRF-comp-Revenue_all, fig.cap="Marginal Response of GDP to Government Revenue Compared \n (Baseline vs Reduced Lags)", fig.align='center'}
+# Plot Revenue IRFs
+ggplot(df_rev_all, aes(x = Period, y = IRF, color = Sample)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "IRFs Over Time \n (Restricted vs Unrestricted Model)",
+    x = "Periods Ahead",
+    y = "Impulse Response"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  custom_theme
+```
+
+For the government expenditure shock, we find similar trends under both specifications, with both models reporting an instantaneous drop in GDP growth, followed by an increase the next quarter. There are some discrepancies with the point estimates from the 2nd quarter onward, with the reduced lag specification reporting lower marginal responses. Given the wide confidence intervals reported in the baseline specification, this does not challenge our results.  
+
+Regarding the IRF of GDP following a shock to government revenue, we observe a similar peak the quarter after the shock.  Following this, the marginal response decreases over time, however this is more gradual, and does not show a reversal as with the baseline model. This suggests that the reduced lag has not been able to capture the dynamics of the underlying response; the motivation for our use of a lag order chosen a priori.
+
+
+```{r, Multipliers 1 lag}
+# Constructing cumulative present value multipliers
+
+level_irf_exp_response_1_lag <- exp(exp_irf_1_lag) - 1  # % change in Y relative to baseline
+level_irf_rev_response_1_lag <- exp(rev_irf_1_lag) - 1  # % change in G relative to baseline
+level_irf_rev_1_lag <- exp(round(irf_result_1_lag$irf$dif_log_revenue[, 5],2)) - 1  # % change in G relative to baseline
+
+level_irf_exp_1_lag <- exp(round(irf_result_1_lag$irf$dif_log_expenditure[, 1],2)) - 1  # % change in G relative to baseline
+
+
+pv_exp_response_1_lag <- sum(level_irf_exp_response_1_lag * quarterly_discount_factors)
+pv_exp_1_lag <- sum(level_irf_exp_1_lag * quarterly_discount_factors)
+Exp_PV_1_lag = pv_exp_response_1_lag/pv_exp_1_lag
+exp_multiplier_1_lag <- Exp_PV_1_lag *(mean_gdp/mean_expenditure)
+
+
+
+pv_rev_response_1_lag <- sum(level_irf_rev_response_1_lag * quarterly_discount_factors)
+pv_rev_1_lag <-  sum(level_irf_rev_1_lag * quarterly_discount_factors)
+Rev_PV_1_lag = pv_rev_response_1_lag/pv_rev_1_lag
+rev_multiplier_1_lag <- Rev_PV_1_lag *(mean_gdp/mean_revenue)
+
+# exp_multiplier_1_lag
+# rev_multiplier_1_lag
+
+
+```
+
+
+
+Again we report the cumulative present value multipliers following Mountford and Uhlig's (2009) methodology. For government revenue we observe a multiplier of `r round(rev_multiplier_1_lag,2)` and for government expenditure we report a multiplier of `r round(exp_multiplier_1_lag,2)`. Having considered our robustness checks, we proceed with the next section where we discuss our results, compare these with the literature, and provide the implications of this research for policy.
+
+# Discussion/ Policy Implications
+
+
+```{r IRFs Table Output}
+
+# Create a data frame with separate columns
+multiplier_table <- data.frame(
+  Specification = c("1 lag", "Post-GFC", "Baseline"),
+  Expenditure = c(exp_multiplier_1_lag, exp_multiplier_post_gfc, exp_multiplier),
+  Revenue     = c(rev_multiplier_1_lag, rev_multiplier_post_gfc, rev_multiplier)
+)
+
+# Reshape to long format for kable
+long_table <- pivot_longer(multiplier_table, cols = c(Expenditure, Revenue),
+                           names_to = "Fiscal Instrument", values_to = "Multiplier")%>%
+  mutate(Multiplier = round(Multiplier, 2))  %>%
+  arrange(`Fiscal Instrument`, Specification)
+
+
+
+# Display the table
+# kable(long_table, caption = "Present Value Multipliers by Specification and Fiscal Instrument")
+
+```
+
+
+
+Table 1 summarises the multipliers reported by this paper. For government spending we find little evidence of a crowding in effect, with weak a positive multiplier in our baseline specification that is robust over the period following the GFC. Using a reduced lag specification, we find a negative multiplier. Although we highlight concerns that too few lags would not allow us to adequately recover the IRFs, the point estimates under this specification are within the confidence interval for our baseline model. Thus this multiplier is compatible with our baseline results. In contrast, we found a statistically significant and positive multiplier for government revenue. These results were determined to be robust to our checks for potential misspecification, despite some evidence of the the government revenue multiplier being larger following the GFC. Furthermore, positive government revenue multipliers are not consistent with the findings of the literature. We consider potential explanations for this.
+
+`r kable(long_table, caption = "Present Value Multipliers by Specification and Fiscal Instrument")`
+
+De Castro (2006) finds a positive response of GDP to a shock to net taxes, which they attribute to a mediating effect via increased government expenditure in response to the tax shock. Given that we have reported either weak or negative government expenditure multipliers, this transmission mechanism would not apply to our analysis. Instead we discuss alternative hypotheses.
+
+
+Recalling that the government revenue variable is defined following the ESA (2010), this can be interpreted as net taxes, as has also been outlined by the ONS. Thus the positive multiplier for government revenue is counter intuitive as we would expect GDP to decline in response to greater taxation. However, it is worth highlighting that tax revenues, as captured by this analysis are not the same as the fiscal instrument available to the government: tax legislation encompassing tax rates, allowances and exemptions. Thus one explanation for the findings of positive tax multipliers is that this is reflecting the UK's position on the Laffer curve, the relationship between tax rates and GDP may be positive as expected, however lower tax rates may lead to greater overall revenue by providing a greater incentive for labour and the use of capital. Simultaneously, lower tax rates would be expected to increase GDP, the combination of these two effects could be responsible for the positive multiplier. Nevertheless, Nguyen, Onnis, and Rossi (2020) analysed the effects of unexpected changes to income and consumption taxes in the UK. Their results suggested that the UK is still on the increasing portion of the Laffer curve for these taxes. As we find that these taxes account for 60% of government revenue in our sample, this does not reject the potential for the UK to be on the decreasing portion of the Laffer curve when taxes are considered as an aggregate, although it does suggest that this reason is less likely. 
+
+Before considering the second hypothesis for our result of a positive government revenue multiplier, we highlight again the twofold objectives of this paper: to estimate fiscal multipliers for the UK and to address the concerns raised by methodological differences affecting estimates of fiscal multipliers (Ramey, 2016; Gechert, 2017). While it is not clear whether the UK has reached the decreasing portion of the Laffer curve, we still emphasise the limitations of the government revenue variable used in this analysis as well as elsewhere in the literature. This variable does not reflect a feasible policy option for the government, instead more direct measures of these options should be used. Nevertheless, this does not invalidate the identifying assumptions for government expenditure shocks. Thus, as intended, this paper has estimated fiscal multipliers, while noting concerns with an approach commonly seen in the literature. We consider the scope for future research later in this section.
+
+For the second explanation, we highlight that the post GFC specification reported a larger multiplier for government revenue. Following the GFC, the resulting lower GDP reduced the overall tax base meaning lower tax revenues for the government. While this effect would not be captured by the multiplier we report given the inclusion of GDP in the model, it is worth highlighting that the period where we observe a larger government revenue multiplier had lower tax revenues. Kilian and Lutkepohl (2016) highlight that as a consequence of the linearity of a VAR model, responses to negative shocks will be the same as those for positive shocks, except the signs will be flipped. Thus an equally valid interpretation for our results is that an exogenous decrease in tax revenues is associated with a decrease in GDP. Despite being equally accurate under the model, this may be more consistent with economic theory. Given the high debt levels, lower government revenues could lead to concerns of the government's ability to maintain its finances, which could reduce investment. Instead interpreting our results in terms of a negative shock to government revenues, this would suggest that a shock to the growth of government revenue of -1 standard deviations is associated with a decrease in GDP growth of 23% in the following quarter. As expected, we would not expect investment decisions to respond instantaneously to the shock, thus this mechanism may be more intuitive. Furthermore, this explanation may better explain the continued negative response to the negative shock; as the reduced investment leads to lower consumption. 
+
+Finally, a possible explanation for the counter-intuitive government revenue multiplier is misspecification of the structural model. Unlike the previous hypotheses, this would suggest misspecification in the model, rather than providing an interpretation for the results. Given our identifying assumptions, we would not expect reverse causation, as the revenue shock has been identified based on timing constraints. However, as noted by Kilian and Lutkepohl (2016), recursive identification requires economic justification; it is not sufficient to only meet the order condition for identification. If the recursive ordering does not have economic foundations, the identified structural shocks will be meaningless. Nevertheless, we have motivated the recursive ordering used in this analysis by economic theory, believing the resulting structural shocks to thus represent meaningful economic phenomena. 
+
+
+## Policy Implications
+Having contextualised our results we now consider policy implications. We have highlighted potential concerns with the interpretation and identification of government revenue shocks in this analysis (as well as the wider literature). Therefore, we focus on the policy implications of our government expenditure multipliers. Across all specifications, we observed a weak crowding out effect of government spending. This suggests that there is scope for the UK government to improve its fiscal position through decreased expenditure, without the improvements to the Debt-to-GDP ratio being offset by a greater decrease in GDP. Given the concerns of high public indebtedness that we have raised, this is an important policy question. 
+
+
+```{r Expenditure change Percent GDP}
+
+exp_change_df <- data %>%
+  dplyr::select(Year, Expenditure_SA, GDP) %>% 
+  group_by(Year) %>% 
+  summarise(Expenditure_SA = sum(Expenditure_SA), GDP = sum(GDP)) %>% 
+  mutate(expenditure_change = 100 *(Expenditure_SA - lag(Expenditure_SA))/GDP) %>% 
+  filter(!is.na(expenditure_change)) 
+
+percentiles <- quantile(exp_change_df$expenditure_change, probs = c(0.9 ,0.95), na.rm = TRUE)
+percentile_df <- data.frame(
+  percentile = c("90th percentile", "95th percentile"),
+  value = c(percentiles[1], percentiles[2])
+)
+
+
+```
+
+```{r Expenditure change as Percent of GDP, fig.cap="Annual Change in Expenditure as a percent of GDP", fig.align='center'}
+
+
+ggplot(exp_change_df, aes(x = expenditure_change)) +
+  geom_density(fill = "#3498DB", alpha = 0.6) +
+  geom_vline(data = percentile_df, aes(xintercept = value, color = percentile), linetype = "dashed", size = 1) +
+  scale_color_manual(values = c("90th percentile" = "#E74C3C", "95th percentile" = "#27AE60")) +
+  labs(
+    title = "Density Plot of Annual Expenditure Change",
+    x = "Expenditure Change (Percent)",
+    y = "Density",
+    color = "Percentile"
+  ) +
+    custom_theme
+```
+
+
+
+Nevertheless, agents cannot be expected to behave the same in a new policy environment, thus we consider the practicality of implementing the aggressive fiscal consolidation measures suggested by the OECD (2012). Leeper and Zha (2003) introduce the concept of "modest policy intervention", providing us with a framework to consider this. They define this intervention as one that is within the observed historical variation, under such an intervention, agents do not update their beliefs. Thus we calculate the historical change in government expenditure as a percentage of GDP, reporting our results in figure 8. We also add a line for the 95th percentile which corresponds to 5.5%. While the choice of the 95th percentile is arbitrary given the distribution of this variable is clearly not Gaussian, it suggests that there is a reasonable amount of variability in the data in the region of the fiscal consolidation policy proposed by the OECD (2012). Instead considering the 90th percentile as a more conservative case, we find that this corresponds to 2.5% (also seen in figure 8). While this would not meet the OECD's suggested level of fiscal consolidation, this is within the region suggested by the IMF (2024). We recall the finding of Alesina, Favero, and Giavazzi (2015) that fiscal adjustments are less effective when subject to reversal. This suggests that following the more aggressive fiscal adjustments may be counterproductive if these must later be cancelled due to adverse effects. Thus UK policymakers could begin with smaller fiscal adjustments in the region suggested by the IMF, scaling these up if it is confirmed that agents do not update their beliefs. This highlights the importance of continued research in this area, we now discuss some promising areas of interest.
+
+
+## Future Research
+
+In our literature review, we highlighted the breadth of research on fiscal multipliers, but also the lack of research for the UK. Given evidence of variation in multipliers across countries, this is a notable gap, which this paper has aimed to bridge. In doing so, we have reported initial estimates of aggregate multipliers for the UK, and highlighted methodological concerns with the definition of government revenue used in the literature. The literature would benefit from further research assessing the validity of the specifications used to estimate fiscal multipliers. As demonstrated by this paper, this can have considerable impacts, leading to potentially detrimental effects for economic policy when relying on these results. 
+
+Given the limited existing research on fiscal multipliers in the UK context, this research has considered aggregate multipliers. However, government spending and revenue are ultimately made of numerous components, which themselves are unlikely to have homogeneous multipliers. While Nguyen, Onnis, and Rossi (2020) consider this for consumption and income taxes in the UK, there is still ambiguity regarding the multipliers of the fiscal policy options available to the UK government. Further research into the size and magnitude of these more granular multipliers in the UK would help policymakers refine their fiscal consolidation measures to minimise the downside risks. 
+
+Additionally, we highlighted how multipliers are not static, instead a number of factors can affect their size and magnitude. Future research would be well placed to extend this to the UK, to determine the sensitivity of multipliers to the state of the economy. As we have shown, using inaccurate multipliers can have adverse effects on growth (Blanchard and Leigh, 2013). Thus there are large benefits to reap from the growth of the literature as well as more precise fiscal multipliers that are better understood. 
+
+
+
+
+# Conclusion
+
+
+This paper has employed a SVAR analysis of fiscal multipliers using a 6-dimensional VAR with quarterly data. We use recursive short run restrictions, leveraging economic theory to determine the transmission of shocks across the VAR model thus identifying the structural parameters. We find a weak positive expenditure multiplier, whereas for government revenue we report a positive multiplier with a 68% bootstrap confidence interval excluding 0. We perform tests for misspecification to assess the robustness of these results. Across these specifications we find similar, positive results for the multiplier of government revenue. For our government expenditure multiplier, this is robust to our assessment of stability following the GFC, although we observe a modest crowding out effect when considering the reduced lag representation. Given that the IRFs from this specification are contained within the confidence interval of our benchmark model, we note that this multiplier is feasible under our main results. We discuss the policy implications of these results. The low reported multipliers for government expenditure suggest scope for the UK government to reduce its spending to improve its fiscal position, without facing counterproductive effects through a disproportionate decrease in GDP. We also consider the magnitude of interventions proposed in the literature; noting that, based on the variability of the annual change in expenditure, we would expect these to be "modest policy interventions". Thus we expect that these results would not be made redundant by agents updating their beliefs. This paper also highlights limitations of the net tax variable commonly used in the literature, and suggests scope for future research. 
+
+\newpage
+
+
+# Bibliography
+
+
+Afonso, A. and Sousa, R.M. (2012) The Macroeconomic Effects of Fiscal Policy. *Applied Economics*. **44**(34), pp.4439-4454.
+
+
+Alesina, A. and Ardagna, S. (1998) Tales of Fiscal Adjustment. *Economic Policy*. **13**(27), pp.488-545.
+
+
+Alesina, A., Favero, C. and Giavazzi, F. (2015) The Output Effect of Fiscal Consolidation Plans. *Journal of International Economics*. **96**, pp. S19-S42.
+
+
+Afonso, A. and Sousa, R.M. (2011). The Macroeconomic Effects of Fiscal Policy in Portugal: a Bayesian SVAR Analysis. *Portuguese Economic Journal*. **10**(1), pp.61-82.
+
+
+Auerbach, A.J. and Gorodnichenko, Y. (2012). Measuring the Output Responses to Fiscal Policy. *American Economic Journal*: Economic Policy. **4**(2), pp.1-27.
+
+
+Blanchard, O.J. and Leigh, D. (2013). Growth Forecast Errors and Fiscal Multipliers. *American Economic Review*. **103**(3), pp.117-120.
+
+
+Blanchard, O. (2019). Public Debt and Low Interest Rates. *American Economic Review*. **109**(4), pp.1197-1229.
+
+
+Blanchard, O. and Perotti, R. (2002). An Empirical Characterization of the Dynamic Effects of Changes in Government Spending and Taxes on Output. *The Quarterly Journal of Economics*. **117**(4), pp.1329-1368.
+
+
+Caldara, Dario; Kamps, Christophe (2008) : What are the Effects of Fiscal Policy Shocks? A VAR-based Comparative Analysis, ECB Working Paper, No. 877, European Central Bank (ECB), Frankfurt a. M.
+
+
+Canzoneri, Matthew, Fabrice Collard, Harris Dellas, and Behzad Diba. (2016). Fiscal Multipliers in Recessions. *The Economic Journal .**126** (590), pp 75-108.
+
+
+Čapek, J. and Crespo Cuaresma, J., (2020). We Just Estimated Twenty Million Fiscal Multipliers. *Oxford Bulletin of Economics and Statistics*. **82**(3), pp.483-502.
+
+
+Cheung, Y.W. and Lai, K.S. (1993). Finite-Sample Sizes of Johansen’s Likelihood Ratio Tests for Cointegration. *Oxford Bulletin of Economics and statistics*.** 55**(3), p.1025.
+
+
+Cloyne, J. (2013). Discretionary Tax Changes and the Macroeconomy: A New Narrative Evidence from the United Kingdom. *American Economic Review* .**103** (4), pp1507-1528
+
+
+De Castro, F. (2006). The Macroeconomic Effects of Fiscal Policy in Spain. *Applied Economics*.**38**(8), pp.913-924.
+
+
+Efron, B. (1981). Nonparametric Standard Errors and Confidence Intervals. *Canadian Journal of Statistics*. **9**(2), pp.139-158.
+
+
+Efron, B. (1979). Bootstrap Methods: Another Look at the Jackknife*The Annals of Statistics*. **7** (1), pp.1-26.
+
+
+European Commission, (2013). European System of Accounts. Publications Office of the European Union. Available at: https://ec.europa.eu/eurostat/documents/3859598/5925693/KS-02-13-269-EN.PDF.pdf/44cd9d01-bc64-40e5-bd40-d17df0c69334?t=1414781932000 [Accessed: 11 August 2025].
+
+
+Fatás, A. and Summers, L.H. (2018). The permanent effects of fiscal consolidations. *Journal of International Economics*. **112**, pp.238-250.
+
+
+Gechert, S. (2017). On theories and estimation techniques of fiscal multipliers, FMM Working Paper, No.11, Hans-Böeckler-Stiftung, Macroeconomic Policy Institute (IMK), Forum for Macroeconomics and Macroeconomic Policies (FMM), Düsseldorf.
+
+
+Gechert, S., Horn, G. and Paetz, C. (2019). Long‐term effects of fiscal stimulus and austerity in Europe. *Oxford Bulletin of Economics and Statistics*. **81**(3), pp.647-666.
+
+
+Ghassibe, M. and Zanetti, F., (2022). State dependence of fiscal multipliers: the source of fluctuations matters. *Journal of Monetary Economics*. **132**, pp.1-23.
+
+
+Hubrich, K., Lütkepohl, H. and Saikkonen, P. (2001). A review of systems cointegration tests. *Econometric Reviews*, **20**(3), pp.247-318.
+
+
+Ilzetzki, E., Mendoza, E.G. and Végh, C.A. (2013). How big (small?) are fiscal multipliers? *Journal of Monetary Economics*, **60**(2), pp.239-254.
+
+
+International Monetary Fund. (2023). Fiscal Monitor: On the Path to Policy Normalization. Washington, DC: IMF, April.
+
+
+International Monetary Fund. (2024). Fiscal Monitor: Putting a Lid on Public Debt. Washington, DC: IMF, October.
+
+
+Jordà, Ò. (2005). Estimation and inference of impulse responses by local projections. *American Economic Review*,** 95**(1), pp.161-182.
+
+
+Kilian, L. and Kim, Y.J. (2011). How reliable are local projection estimators of impulse responses? *Review of Economics and Statistics*, **93**(4), pp.1460-1466.
+
+
+Kilian, L. and Lütkepohl, H. (2017). *Structural Vector Autoregressive Analysis.* New York: Cambridge University Press.
+
+
+Kim, J., Wang, M., Park, D. and Petalcorin, C.C. (2021). Fiscal policy and economic growth: some evidence from China. *Review of World Economics*, **157**(3), pp.555-582.
+
+
+Kumar, M.S. and Woo, J. (2015). Public debt and growth. *Economica*, **82**(328), pp.705-739.
+
+
+Leeper, E.M. and Zha, T. (2003). Modest Policy Interventions. *Journal of Monetary Economics*, **50**(8), pp.1673-1700.
+
+
+Li, D., Plagborg-Møller, M. and Wolf, C.K. (2024). Local Projections vs. VARs: Lessons from Thousands of DGPs. *Journal of Econometrics*, **244**(2), p.105722.
+
+
+Candelon, B. and Lütkepohl, H. (2001). On the Reliability of Chow-Type Tests for Parameter Constancy in Multivariate Dynamic Models. *Economics letters*, **73**(2), pp.155-160.
+
+
+Lüutkepohl, H., Saikkonen, P. and Trenkler, C. (2001). Maximum eigenvalue versus trace tests for the cointegrating rank of a VAR process. *The Econometrics Journal*, **4**(2), pp.287-310.
+
+
+Lynch, B. and Whitaker, S. (2004). The new sterling ERI. Bank of England Quarterly Bulletin, Winter.
+
+
+Maddala, G.S. and Kim, I.M. (1998). *Unit Roots, Cointegration, and Structural Change*. 6th edition. New York: Cambridge University Press.
+
+
+Makin, A.J. and Layton, A. (2021). The Global Fiscal Response to COVID-19: Risks and Repercussions. *Economic Analysis and Policy*. **69**, pp.340-349.
+
+
+Martin, V., Hurn, S. and Harris, D. (2013). *Econometric Modelling with Time Series: specification, estimation and testing*. New York: Cambridge University Press.
+
+
+Mountford, A. and Uhlig, H. (2009). What are the Effects of Fiscal Policy Shocks? *Journal of Applied Econometrics*, **24**(6), pp.960-992.
+
+
+Nguyen, A.D., Onnis, L. and Rossi, R. (2021). The Macroeconomic Effects of Income and Consumption Tax Changes. *American Economic Journal: Economic Policy*, **13**(2), pp.439-466.
+
+
+Office for National Statistics, (2023). Public Sector Finances QMI. Office for National Statistics. Available at: https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/methodologies/publicsectorfinancesandgovernmentdeficitanddebtunderthemaastrichttreatyqmi [Accessed: 12 August 2025].
+
+
+Office for National Statistics (ONS), released 30 April 2024, ONS website, statistical bulletin, UK government debt and deficit: December 2023. Available at https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicspending/bulletins/ukgovernmentdebtanddeficitforeurostatmaast/december2023 [Accessed: 4th August 2025]
+
+
+Owyang, M.T., Ramey, V.A. and Zubairy, S. (2013). Are Government Spending Multipliers Greater During Periods of Slack? Evidence from Twentieth-Century Historical data. *American Economic Review*, **103**(3), pp.129-134.
+
+
+Perotti, R. (2005). Estimating the Effects of Fiscal Policy in OECD Countries. (Discussion Paper 4842). Available at SSRN 717561. Available at https://conference.nber.org/confer/2002/isom02/perotti.pdf [Accessed 8th August 2025].
+
+
+Ramey, V.A. and Zubairy, S. (2018). Government Spending Multipliers in Good Times and in Bad: Evidence from US Historical Data. *Journal of Political Economy*, **126**(2), pp.850-901.
+
+
+Ramey, V.A. (2019). Ten Years After the Financial Crisis: What Have We Learned from the Renaissance in Fiscal Research? *Journal of Economic Perspectives*, **33**(2), pp.89-114.
+
+
+OECD (2012). Fiscal Consolidation: How Much, How Fast and By What Means? OECD Publishing. Available at https://www.oecd.org/content/dam/oecd/en/publications/reports/2012/04/fiscal-consolidation_g17a2117/5k9bj10bz60t-en.pdf [Accessed 2nd August 2025].
+
+
+UK government debt and deficit: December 2023 (2024) UK Government Debt and Deficit - Office for National Statistics. Available at: https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicspending/bulletins/ukgovernmentdebtanddeficitforeurostatmaast/december2023 (Accessed: 11 August 2025).
+
+
+Warmedinger, T., Checherita-Westphal, C.D. and De Cos, P.H. (2015). Fiscal Multipliers and Beyond. ECB Occasional Paper, 162.
+
+\newpage
+ 
+# Appendix
+
+## Data  Sources
+
+
+
+```{r Data Appendix}
+
+
+knitr::kable(
+  data.frame(
+    Variable = c(
+      "Fiscal Variables (Not Seasonally Adjusted)",
+      "UK ERI (XUQAB82)",
+      "GDP (Seasonally Adjusted)",
+      "GDP Deflator (Seasonally Adjusted)",
+      "3-Month Interest Rate"
+    ),
+    Source = c(
+      "[ONS ESA Table 25](https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicspending/datasets/esatable25quarterlynonfinancialaccountsofgeneralgovernment)",
+      "[Bank of England ERI Database](https://www.bankofengland.co.uk/boeapps/database/fromshowcolumns.asp?Travel=NIxIRxSUx&FromSeries=1&ToSeries=50&DAT=RNG&FD=1&FM=Jan&FY=1987&TD=12&TM=Aug&TY=2025&FNY=&CSVF=TT&html.x=160&html.y=25&C=IIY&Filter=N)",
+      "[ONS GDP Dataset](https://www.ons.gov.uk/economy/grossdomesticproductgdp/datasets/secondestimateofgdp/current)",
+      "[ONS GDP Bulletin](https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/quarterlynationalaccounts/latest#data-on-gdp-quarterly-national-accounts)",
+      "[FRED 3-Month Rate](https://fred.stlouisfed.org/series/IR3TIB01GBM156N)"
+    )
+  ),
+  caption = "Key Macroeconomic Data Sources for UK Fiscal and Monetary Analysis",
+  escape = FALSE
+)
+```
+
+\newpage
+
+
+# Code
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
